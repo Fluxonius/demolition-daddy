@@ -48,10 +48,10 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           target_commitish: ${{ github.sha }}
-          name: Cursor Pet ${{ github.event.inputs.tag || github.ref_name }}
+          name: NapCat ${{ github.event.inputs.tag || github.ref_name }}
           body: |
             Unsigned macOS build (universal: Apple Silicon + Intel).
-            Download `Cursor-Pet-universal.dmg`, drag Cursor Pet to Applications, then right-click it → Open (or run `xattr -cr "/Applications/Cursor Pet.app"`).
+            Download `NapCat-universal.dmg`, drag NapCat to Applications, then right-click it → Open (or run `xattr -cr "/Applications/NapCat.app"`).
           files: |
             overlay/dist/*.dmg
             overlay/dist/*.zip

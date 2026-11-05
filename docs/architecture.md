@@ -1,4 +1,4 @@
-# Demolition Daddy — Architecture Overview
+# NapCat — Architecture Overview
 
 For the hackathon team. Mapped from `github.com/Fluxonius/demolition-daddy` at commit `d381a5a` (`main`, 2026-11-05). Spec source of truth: `docs/foundation-spec.md` (v1.1). Prefer that doc for product detail; this page is the shared mental model.
 

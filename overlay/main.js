@@ -72,7 +72,7 @@ function openSettings() {
   settingsWin = new BrowserWindow({
     width: 380,
     height: 600,
-    title: 'Pet settings',
+    title: 'NapCat settings',
     frame: false,
     resizable: false,
     maximizable: false,
@@ -122,13 +122,13 @@ function menuTemplate() {
     { label: 'Move to bottom-right', click: () => win.setBounds({ ...bottomRight(), width: WIDTH, height: HEIGHT }) },
     { label: 'Open DevTools', click: () => win.webContents.openDevTools({ mode: 'detach' }) },
     { type: 'separator' },
-    { label: 'Quit pet', role: 'quit' },
+    { label: 'Quit NapCat', role: 'quit' },
   ];
 }
 
 function createTray() {
   tray = new Tray(trayIcon());
-  tray.setToolTip('Demolition Daddy pet');
+  tray.setToolTip('NapCat');
   tray.setContextMenu(Menu.buildFromTemplate(menuTemplate()));
   // Windows/Linux: a left click on the tray icon opens settings directly.
   tray.on('click', () => process.platform !== 'darwin' && openSettings());

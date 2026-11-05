@@ -1,7 +1,7 @@
 {
   "name": "demolition-daddy-overlay",
-  "productName": "Cursor Pet",
-  "version": "0.1.0",
+  "productName": "NapCat",
+  "version": "0.2.0",
   "private": true,
   "description": "Floating desktop pet overlay (Electron) with a localhost fallback for Cursor's built-in browser",
   "author": "Demolition Daddy team",
@@ -20,9 +20,9 @@
     "electron-builder": "^26.18.0"
   },
   "build": {
-    "appId": "com.demolitiondaddy.cursorpet",
-    "productName": "Cursor Pet",
-    "artifactName": "Cursor-Pet-${arch}.${ext}",
+    "appId": "com.demolitiondaddy.napcat",
+    "productName": "NapCat",
+    "artifactName": "NapCat-${arch}.${ext}",
     "asar": false,
     "files": [
       "main.js",
@@ -49,7 +49,7 @@
       }
     },
     "dmg": {
-      "title": "Cursor Pet"
+      "title": "NapCat"
     }
   },
   "engines": {

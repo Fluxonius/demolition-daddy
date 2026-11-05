@@ -2,7 +2,9 @@
   <img src="docs/assets/pet-demo.gif" width="240" alt="Pixel the cat cycling through its states with idle animations: happy, focused, watching, tired, melting, asleep, resting, asking, celebrating">
 </p>
 
-<h1 align="center">Demolition Daddy</h1>
+<h1 align="center">NapCat</h1>
+
+<p align="center"><i>by team Demolition Daddy</i></p>
 
 <p align="center">
   <b>Other coding pets eat your tokens. Ours eats your breaks.</b><br>
@@ -26,7 +28,7 @@ Tune it to your taste: right-click Pixel → **Settings…**
 
 ## Try it
 
-**macOS:** download [Cursor-Pet-universal.dmg](https://github.com/Fluxonius/demolition-daddy/releases/latest/download/Cursor-Pet-universal.dmg), drag it to Applications, then right-click → **Open** (it's unsigned). Pixel starts in demo mode.
+**macOS:** download [NapCat-universal.dmg](https://github.com/Fluxonius/demolition-daddy/releases/latest/download/NapCat-universal.dmg), drag it to Applications, then right-click → **Open** (it's unsigned). Pixel starts in demo mode.
 
 **Any OS, from source:**
 
@@ -46,11 +48,11 @@ Status: hackathon build. Live today: the overlay with every pet state, animation
 
 ## For judges
 **macOS app (no Node, no npm):**
-1. **Download** [Cursor-Pet-universal.dmg](https://github.com/Fluxonius/demolition-daddy/releases/latest/download/Cursor-Pet-universal.dmg) (Apple Silicon + Intel; [.zip](https://github.com/Fluxonius/demolition-daddy/releases/latest/download/Cursor-Pet-universal.zip) and older builds on the [Releases page](https://github.com/Fluxonius/demolition-daddy/releases)).
-2. **Install:** open the .dmg and drag **Cursor Pet** to **Applications**.
-3. **Open:** the app is unsigned, so the first time **right-click Cursor Pet → Open → Open**. If macOS says the app "is damaged" or still refuses, run this once in Terminal and open it again:
+1. **Download** [NapCat-universal.dmg](https://github.com/Fluxonius/demolition-daddy/releases/latest/download/NapCat-universal.dmg) (Apple Silicon + Intel; [.zip](https://github.com/Fluxonius/demolition-daddy/releases/latest/download/NapCat-universal.zip) and older builds on the [Releases page](https://github.com/Fluxonius/demolition-daddy/releases)).
+2. **Install:** open the .dmg and drag **NapCat** to **Applications**.
+3. **Open:** the app is unsigned, so the first time **right-click NapCat → Open → Open**. If macOS says the app "is damaged" or still refuses, run this once in Terminal and open it again:
    ```bash
-   xattr -cr "/Applications/Cursor Pet.app"
+   xattr -cr "/Applications/NapCat.app"
    ```
 4. **See it react:** a small black pixel cat appears at the **bottom-right of your screen**. There is no Dock icon; the app lives in the **menu bar** (a small dark circle). While no real engine has written `~/.cursor-pet/state.json`, the app starts in **Demo mode**: every 3 s the pet moves through happy → focused → tired (with a "Let's go / Later" nudge) → melting → sleeping → resting. Toggle it with menu-bar icon (or right-click the pet) → **Demo mode (fake states)**. Turning demo off shows the real `~/.cursor-pet/state.json`.
 5. **Try:** drag the pet anywhere; click it to pet it; click **Let's go** on a nudge to see the exercise.
