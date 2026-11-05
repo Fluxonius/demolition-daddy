@@ -17,6 +17,8 @@ contextBridge.exposeInMainWorld('petHost', {
   dragBy: (dx, dy) => ipcRenderer.send('pet:drag', { dx, dy }),
   showMenu: () => ipcRenderer.send('pet:menu'),
   openSettings: () => ipcRenderer.send('pet:openSettings'),
+  openInspector: () => ipcRenderer.send('pet:openInspector'),
+  openInspector: () => ipcRenderer.send('pet:openInspector'),
   onSettings(cb) {
     const listener = (_e, s) => cb(s);
     ipcRenderer.on('pet:settings', listener);
