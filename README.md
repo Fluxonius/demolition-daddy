@@ -26,6 +26,10 @@ Tune it to your taste: right-click Pixel → **Settings…**
 
 ## Try it
 
+**macOS:** download [Cursor-Pet-universal.dmg](https://github.com/Fluxonius/demolition-daddy/releases/latest/download/Cursor-Pet-universal.dmg), drag it to Applications, then right-click → **Open** (it's unsigned). Pixel starts in demo mode.
+
+**Any OS, from source:**
+
 ```bash
 git clone https://github.com/Fluxonius/demolition-daddy.git && cd demolition-daddy/overlay && npm install && npm run demo
 ```
