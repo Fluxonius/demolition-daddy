@@ -1,4 +1,6 @@
-# Demolition Daddy — Foundation Spec
+# NapCat — Foundation Spec
+
+NapCat (by team Demolition Daddy): Pixel the cat, a desktop pet for Cursor.
 
 Status: **v1.1.** v1 was frozen at the hackathon start; v1.1 moves the pet UI out of the extension into a floating desktop overlay (§2.2). Changes go through a PR titled `docs: foundation …` and are announced in team chat.
 Audience: the three teammates and their coding agents. Every feature spec in [`docs/specs/`](specs/) builds on this document.

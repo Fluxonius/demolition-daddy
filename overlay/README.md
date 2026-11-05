@@ -1,4 +1,4 @@
-# overlay/ — floating desktop pet (Electron) + localhost fallback
+# overlay/ — NapCat floating desktop pet (Electron) + localhost fallback
 
 Owner: role **`ui`**. Spec: [foundation §2.2, §4.1, §4.4.1](../docs/foundation-spec.md) and [ui-electron-overlay](../docs/specs/ui-electron-overlay.md).
 
