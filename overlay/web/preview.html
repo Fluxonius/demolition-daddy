@@ -18,7 +18,7 @@
   </style>
 </head>
 <body>
-  <h1>Pixel pet: every mood + blink</h1>
+  <h1>Pixel pet: moods, blink, exercises, overlays</h1>
   <p class="hint">Edit <code>overlay/web/sprites.js</code> (one character = one pixel) and reload. Add <code>?still</code> to stop animations, <code>?dark</code> for dark cards.</p>
   <div id="grid" class="grid"></div>
   <script src="sprites.js"></script>
@@ -28,7 +28,11 @@
       const params = new URLSearchParams(location.search);
       if (params.has('still')) document.body.classList.add('still');
       const moods = ['egg', 'happy', 'focused', 'tired', 'melting', 'sleeping', 'resting'];
-      const cards = moods.map((m) => ({ label: m, mood: m })).concat([{ label: 'blink (happy)', mood: 'happy', blink: true }]);
+      const S = window.PET_SPRITES;
+      const cards = moods.map((m) => ({ label: m, mood: m }))
+        .concat([{ label: 'blink (happy)', mood: 'happy', blink: true }])
+        .concat(Object.keys(S.EXERCISES).map((e) => ({ label: `exercise: ${e}`, mood: 'resting', exercise: e })))
+        .concat(Object.keys(S.OVERLAYS).map((o) => ({ label: `overlay: ${o}`, mood: 'happy', overlays: [o] })));
       const grid = document.getElementById('grid');
       for (const c of cards) {
         const card = document.createElement('div');
@@ -39,7 +43,7 @@
         label.textContent = c.label;
         card.appendChild(label);
         grid.appendChild(card);
-        const pet = window.PixelPet.renderPet(svg, c.mood);
+        const pet = window.PixelPet.renderPet(svg, c.mood, { exercise: c.exercise, overlays: c.overlays });
         if (c.blink) pet.setBlink(true);
         else if (pet.canBlink) setInterval(() => { pet.setBlink(true); setTimeout(() => pet.setBlink(false), 140); }, 3000 + Math.random() * 2000);
       }

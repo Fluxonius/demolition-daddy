@@ -28,11 +28,15 @@
     return g;
   }
 
-  /** Fills svg with the pet for mood. Returns { setBlink(bool) }. */
-  function renderPet(svg, mood, sprites) {
-    const s = sprites || root.PET_SPRITES;
+  /**
+   * Fills svg with the pet. opts.exercise swaps the mood face for an exercise face;
+   * opts.overlays draws accessories on top. Returns { canBlink, setBlink(bool) }.
+   */
+  function renderPet(svg, mood, opts = {}) {
+    const s = opts.sprites || root.PET_SPRITES;
     const doc = svg.ownerDocument;
-    const face = s.FACES[mood] || s.FACES.egg;
+    const exercise = opts.exercise && s.EXERCISES[opts.exercise] ? opts.exercise : null;
+    const face = exercise ? s.EXERCISES[exercise] : s.FACES[mood] || s.FACES.egg;
     const faceOrigin = { x: s.BODY_ORIGIN.x + s.FACE_ORIGIN.x, y: s.BODY_ORIGIN.y + s.FACE_ORIGIN.y };
 
     svg.setAttribute('viewBox', `0 0 ${s.SIZE} ${s.SIZE}`);
@@ -43,13 +47,17 @@
     sprite.setAttribute('class', 'sprite');
     sprite.appendChild(grid(doc, s.BODY, s.BODY_ORIGIN, s.PALETTE, 'body'));
     sprite.appendChild(grid(doc, face, faceOrigin, s.PALETTE, 'face'));
-    const blink = s.BLINK_MOODS.includes(mood) ? grid(doc, s.BLINK, faceOrigin, s.PALETTE, 'blink') : null;
+    const blink = !exercise && s.BLINK_MOODS.includes(mood) ? grid(doc, s.BLINK, faceOrigin, s.PALETTE, 'blink') : null;
     if (blink) {
       blink.style.display = 'none';
       sprite.appendChild(blink);
     }
+    for (const name of opts.overlays || []) {
+      const o = s.OVERLAYS[name];
+      if (o) sprite.appendChild(grid(doc, o.grid, o.origin, s.PALETTE, `overlay overlay-${name}`));
+    }
     svg.appendChild(sprite);
-    if (s.Z_MOODS.includes(mood)) svg.appendChild(grid(doc, s.Z, s.Z_ORIGIN, s.PALETTE, 'z'));
+    if (!exercise && s.Z_MOODS.includes(mood)) svg.appendChild(grid(doc, s.Z, s.Z_ORIGIN, s.PALETTE, 'z'));
 
     return {
       canBlink: !!blink,

@@ -2,13 +2,36 @@
 
 A Tamagotchi that floats next to Cursor and gets tired *with* you while you work with AI coding agents. It recovers only when you take a break. *Other coding pets eat your tokens. Ours eats your breaks.*
 
-Status: hackathon. The overlay starter runs on a fake state; engine and hooks are in progress.
+Status: hackathon. The overlay runs on a fake state today; the engine and Cursor hooks are in progress.
+
+## For judges
+**You need:** macOS (also works on Linux/Windows), [Node.js](https://nodejs.org) **22.12 or newer** (`node -v`), git. Internet access for the first `npm install`.
+
+**Run it (one copy-paste):**
+```bash
+git clone https://github.com/Fluxonius/demolition-daddy.git && cd demolition-daddy/overlay && npm install && npm run demo
+```
+A small black pixel cat appears at the **bottom-right of your screen**, floating above all windows. `npm run demo` drives it with a fake engine, so it reacts immediately: every 3 s it moves through happy → focused → tired (with a "Let's go / Later" nudge) → melting → sleeping → resting. The first run downloads Electron (~1 min).
+
+**Try:** drag the pet anywhere; click it to pet it; click **Let's go** on a nudge to see the pet do the exercise.
+
+**Quit:** right-click the pet → **Quit pet**, or the tray/menu-bar icon → **Quit pet**, or `Ctrl+C` in the terminal.
+
+**Connect real Cursor activity:** not ready yet. The Cursor hooks (`hooks/`) and the engine (`engine/`) that turn agent activity into `~/.cursor-pet/state.json` are still in progress. Once they land: start the engine, then run `npm start` (instead of `npm run demo`) to show the real state.
+
+**Troubleshooting**
+- `npm install` fails or Electron complains about the Node version: update Node to 22.12+.
+- The window doesn't show: use the menu-bar icon → **Show / hide pet** or **Move to bottom-right**. On macOS it may sit behind a full-screen app; switch to a normal desktop.
+- It says "waiting for state…" or "engine offline": nothing is writing `state.json`. Use `npm run demo`, or run `npm run fake` in a second terminal next to `npm start`.
+- Can't run Electron: `npm run serve` (with `npm run fake` in another terminal) and open http://127.0.0.1:4517/ in a browser or in Cursor's Browser tab (File > New Browser).
+- See every pet face at once: open `overlay/web/preview.html` in a browser.
 
 ## Run the pet (overlay)
 Cursor's Agents Window doesn't load VS Code extensions, so the pet is a transparent, always-on-top Electron window on your desktop. It watches `~/.cursor-pet/state.json` (override with `CURSOR_PET_DIR`).
 
 ```bash
 cd overlay && npm install
+npm run demo         # pet + fake engine in one command (scratch state dir)
 npm start            # floating pet, bottom-right; right-click or tray icon to quit
 npm run fake         # optional: fake state.json that cycles through all moods
 npm run serve        # fallback: open http://127.0.0.1:4517/ in Cursor's Browser tab (File > New Browser)

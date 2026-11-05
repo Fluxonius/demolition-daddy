@@ -36,8 +36,8 @@ body.browser #root { justify-content: center; }
 }
 .pet:active { cursor: grabbing; }
 
-/* No state yet, or state older than 2 min. */
-.offline .pet { opacity: .55; filter: grayscale(.7); }
+/* No state yet, or state older than 2 min. The pet itself always stays fully opaque. */
+.offline .label { opacity: .7; }
 
 /* ---- HUD ---- */
 .hud { display: flex; flex-direction: column; align-items: center; gap: 3px; }
