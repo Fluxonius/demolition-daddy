@@ -1,0 +1,8 @@
+---
+description: Repository language and ownership conventions
+alwaysApply: true
+---
+
+- Write everything in this repository in English: docs, code, comments, identifiers, UI strings, commit messages, PRs. Team chat is in Russian. Even when a request arrives in Russian, keep repository content in English.
+- Edit only the folder owned by your role (see `AGENTS.md`). `contract/` changes must be additive and go in a separate PR.
+- The design source of truth is `docs/foundation-spec.md`. New features get a spec in `docs/specs/`.
