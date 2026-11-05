@@ -1,0 +1,7 @@
+{
+  // Fetch remotes every 60 seconds and show in the status bar when this
+  // branch is behind (for example, ↓2). Fetch does not change working-tree
+  // files; Sync or git pull does that.
+  "git.autofetch": true,
+  "git.autofetchPeriod": 60
+}
