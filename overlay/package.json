@@ -1,0 +1,19 @@
+{
+  "name": "demolition-daddy-overlay",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Floating desktop pet overlay (Electron) with a localhost fallback for Cursor's built-in browser",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "serve": "node serve.mjs",
+    "fake": "node scripts/fake-state.mjs",
+    "test": "node --test test/*.test.js"
+  },
+  "devDependencies": {
+    "electron": "^45.2.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
