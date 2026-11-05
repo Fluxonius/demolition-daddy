@@ -19,13 +19,13 @@
     .card.dark small { color: #aaa; }
     .card .say { font-size: 10px; background: #fffaf0; color: #222; border-radius: 6px; padding: 2px 4px; margin-top: 2px;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
-    .still .sprite, .still .z { animation: none; }
+    .still .sprite, .still .z, .still .actor { animation: none; }
   </style>
 </head>
 <body>
   <h1>Pixel pet: every state</h1>
   <p class="hint">One card per use-case state (<code>overlay/web/states.js</code>), rendered through <code>display.js</code> exactly like the overlay.
-    Edit pixels in <code>overlay/web/sprites.js</code>. <code>?still</code> stops animations, <code>?dark</code> uses dark cards.</p>
+    Edit pixels in <code>overlay/web/sprites.js</code>. <code>?still</code> stops animations, <code>?fast</code> plays idle acts more often, <code>?dark</code> uses dark cards.</p>
   <div id="states" class="grid"></div>
   <h2>Exercise faces (guided break)</h2>
   <div id="exercises" class="grid"></div>
@@ -36,7 +36,10 @@
   <script>
     (() => {
       const params = new URLSearchParams(location.search);
-      if (params.has('still')) document.body.classList.add('still');
+      const still = params.has('still');
+      if (still) document.body.classList.add('still');
+      const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const every = params.has('fast') ? [800, 2000] : undefined;
       const theme = params.has('dark') ? 'dark' : 'light';
       const now = Date.now();
 
@@ -50,7 +53,7 @@
         if (say) { const q = document.createElement('div'); q.className = 'say'; q.textContent = say; el.appendChild(q); }
         parent.appendChild(el);
         const pet = window.PixelPet.renderPet(svg, opts.face, opts);
-        if (pet.canBlink) setInterval(() => { pet.setBlink(true); setTimeout(() => pet.setBlink(false), 140); }, 3000 + Math.random() * 2000);
+        if (!still) window.PixelPet.animate(pet, opts.exercise ? 'exercise' : opts.face, { reduced, every });
       }
 
       for (const ex of window.PET_STATES.STATES) {

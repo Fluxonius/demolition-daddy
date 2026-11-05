@@ -36,6 +36,7 @@ Open `web/sprites.js`. One character is one pixel; colors are letters in `PALETT
 - `EXERCISES.<exercise>` (same 10×6 size) replaces the mood face during a guided break: when the user clicks **Let's go** on a nudge with an `exercise` (for 60 s), or while `onBreak` and `nudge.exercise` are set.
 - `OVERLAYS.<name>` are small accessories with their own origin, drawn on top for each name in `PetState.overlays` (`stuffed`, `bored`, `sweaty`, `nightcap`). They never change the body.
 - `Z` floats above the head in `Z_MOODS`.
+- `TAIL` is drawn on every frame. `ACTS` are short idle animations (frame swaps: `face`/`body`/`tail` grids, `extra` pixels, a `cls` CSS move from `pixel.css`). `IDLES.<face>` lists the acts each face picks from at random every 3–7 s (`PixelPet.animate` in `pixel.js`). A face change plays a short pop + blink. With `prefers-reduced-motion`, only blinks remain.
 - The pet is always fully opaque. Only the window background is transparent. A missing or stale state shows the `egg` face and an "engine offline" label.
 
 Reload `web/preview.html` (open it directly, or via `npm run serve` at `/preview.html`) to see all moods. `npm test` catches ragged rows and unknown colors.

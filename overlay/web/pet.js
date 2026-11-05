@@ -35,16 +35,9 @@
   let prev = { mood: null, onBreak: false };
   let settings = null; // UI-side fields of settings.json (lib/settings.js); null until the host sends them
   let lastChirpId = null;
-
-  (function scheduleBlink() {
-    setTimeout(() => {
-      if (sprite && sprite.canBlink) {
-        sprite.setBlink(true);
-        setTimeout(() => sprite && sprite.setBlink(false), 140);
-      }
-      scheduleBlink();
-    }, 2500 + Math.random() * 3000);
-  })();
+  let player = null; // idle acts + blinks for the drawn sprite (PixelPet.animate)
+  let drawnFace = null;
+  const reducedMotion = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
 
   function browserHost() {
     const poll = (file) => (cb) => {
@@ -107,7 +100,12 @@
     const key = [d.face, d.exercise || '', d.overlays.join(',')].join('|');
     if (key !== drawnKey) {
       drawnKey = key;
-      sprite = window.PixelPet.renderPet(pet, d.face, { exercise: d.exercise, overlays: d.overlays });
+      const face = d.exercise ? 'exercise' : d.face;
+      const pop = drawnFace !== null && face !== drawnFace && !reducedMotion.matches;
+      drawnFace = face;
+      if (player) player.stop();
+      sprite = window.PixelPet.renderPet(pet, d.face, { exercise: d.exercise, overlays: d.overlays, pop });
+      player = window.PixelPet.animate(sprite, face, { reduced: reducedMotion.matches });
     }
 
     const load = state && Number.isFinite(state.load) ? Math.max(0, Math.min(100, state.load)) : 0;
