@@ -58,7 +58,13 @@ Status: hackathon build. Live today: the overlay with every pet state, animation
 5. **Try:** drag the pet anywhere; click it to pet it; click **Let's go** on a nudge to see the exercise.
 6. **Quit:** menu-bar icon or right-click the pet → **Quit pet**.
 
-**Connect to Cursor:** not in the app yet. The Cursor hooks (`hooks/`) and the engine (`engine/`) that turn agent activity into `~/.cursor-pet/state.json` are still in progress; once they land, the app shows the real state with demo mode off.
+**Connect to Cursor** (from a clone, Node 22.18+): install the hooks, run the engine, then start the pet with demo mode off.
+```bash
+node hooks/install.mjs                 # adds the pet hooks to ~/.cursor/hooks.json (--uninstall to remove)
+node engine/scripts/run.mjs            # events.jsonl -> ~/.cursor-pet/state.json every 5 s
+node engine/scripts/run.mjs --llm      # optional: also ask the Cursor CLI (`agent login` first); falls back to rules
+```
+In Cursor, reload the window and start a new chat; `~/.cursor-pet/events.jsonl` should grow with each prompt.
 
 **From source instead** (any OS; needs [Node.js](https://nodejs.org) **22.12+**, git, internet for the first `npm install`):
 ```bash
@@ -73,7 +79,7 @@ A small black pixel cat appears at the **bottom-right of your screen**, floating
 **Troubleshooting**
 - `npm install` fails or Electron complains about the Node version: update Node to 22.12+.
 - The window doesn't show: use the menu-bar icon → **Show / hide pet** or **Move to bottom-right**. On macOS it may sit behind a full-screen app; switch to a normal desktop.
-- It says "waiting for state…" or "engine offline": nothing is writing `state.json`. Use `npm run demo`, or run `npm run fake` in a second terminal next to `npm start`.
+- It says "waiting for state…" or "engine offline": nothing is writing `state.json`. Start the engine (`node engine/scripts/run.mjs`), use `npm run demo`, or run `npm run fake` in a second terminal next to `npm start`.
 - Can't run Electron: `npm run serve` (with `npm run fake` in another terminal) and open http://127.0.0.1:4517/ in a browser or in Cursor's Browser tab (File > New Browser).
 - See every pet face at once: open `overlay/web/preview.html` in a browser.
 

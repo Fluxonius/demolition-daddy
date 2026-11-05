@@ -8,7 +8,7 @@ Needs Node with built-in TypeScript type stripping (22.18+ or 23.6+).
 node engine/scripts/run.mjs                    # real events: ~/.cursor-pet/events.jsonl -> state.json every 5 s
 node engine/scripts/run.mjs --llm              # also ask the Cursor CLI agent every 2 min (falls back to rules)
 node engine/scripts/run.mjs --dir <path> --now last   # replay a log as if its last event were now
-node --test engine/test/
+node --test engine/test/*.test.mjs
 ```
 
 Today `src/engine.ts` exports `buildPetState(snapshot, assessment, { now, lastSnoozeAt })`: it turns the `hooks` telemetry snapshot and fatigue assessment into a `PetState` with one nudge (load ≥ 50, muted 15 min after "Later", none on a break). The plan below is the target.
