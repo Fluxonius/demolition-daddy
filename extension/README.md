@@ -1,4 +1,6 @@
-# extension/ — VS Code/Cursor extension
+# extension/ — VS Code/Cursor extension (optional, stretch)
+
+**Optional since foundation spec v1.1.** Cursor's Agents Window doesn't load extensions, so the pet lives in [`../overlay/`](../overlay/) (role `ui`) and the engine runs as a standalone Node process (role `pet`). Build this only if time allows, e.g. for window-focus signals and a Connect button in the classic editor; its webview can load `../overlay/web/`.
 
 Two roles share this folder, split by path. Spec: [foundation §4.1, §4.2, §4.8, §5.1](../docs/foundation-spec.md).
 

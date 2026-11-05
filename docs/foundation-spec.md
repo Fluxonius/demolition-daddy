@@ -1,11 +1,11 @@
 # Demolition Daddy — Foundation Spec
 
-Status: **v1, frozen for the hackathon start.** Changes go through a PR titled `docs: foundation …` and are announced in team chat.
+Status: **v1.1.** v1 was frozen at the hackathon start; v1.1 moves the pet UI out of the extension into a floating desktop overlay (§2.2). Changes go through a PR titled `docs: foundation …` and are announced in team chat.
 Audience: the three teammates and their coding agents. Every feature spec in [`docs/specs/`](specs/) builds on this document.
 
 **TL;DR**
-- A Tamagotchi-style pet that lives in Cursor's sidebar and gets tired *with* you while you work with AI coding agents. It recovers only when *you* rest. Pitch line: *"Other coding pets eat your tokens. Ours eats your breaks."*
-- Integration: **Cursor Hooks → local JSONL event log → VS Code extension (engine + sidebar webview + status bar).** Hooks are the only way to see agent activity; the extension is the only good place for UI and window-focus signals.
+- A Tamagotchi-style pet that floats on your desktop next to Cursor and gets tired *with* you while you work with AI coding agents. It recovers only when *you* rest. Pitch line: *"Other coding pets eat your tokens. Ours eats your breaks."*
+- Integration: **Cursor Hooks → local JSONL event log → engine (Node) → `state.json` → pet page in a transparent always-on-top Electron window** (`overlay/`). Fallback: the same page on localhost, opened in Cursor's built-in Browser tab. Hooks are the only way to see agent activity. Cursor's Agents Window doesn't load extensions, so the VS Code extension is optional (stretch).
 - The pet never dies, never guilts, never blocks by default. The optional soft prompt-lock is opt-in and has an override.
 - Three roles with stable IDs and non-overlapping folders (§5.2):
   - **`ui`** (Design & UI): how everything looks.
@@ -23,7 +23,7 @@ AI agents shift developer work from *creating* to *supervising*: deciding what t
 Existing break reminders (Stretchly, Workrave, TomoBreak) only know time and keystrokes. Existing Cursor pets (Codogotchi, cursor-gotchi, CursorToys Pet, Buddy, tokengotchi) reward *more* AI usage and punish absence. Nobody uses the agent's own rhythm (prompt → wait → read → decide) to time breaks.
 
 ### 1.2 Product in one paragraph
-A small pet in the Cursor sidebar mirrors your cognitive load. Every prompt you send, every long answer you read, every file the agent edits, every aborted run and every hour without a break makes it more tired. When load is high, the pet asks you to step away, and it does this only at natural boundaries: while the agent is working, or right after it stops. When you take a break, the pet rests too, recovers, and may bring something back. It is a mirror, not a nag.
+A small pet floating next to Cursor mirrors your cognitive load. Every prompt you send, every long answer you read, every file the agent edits, every aborted run and every hour without a break makes it more tired. When load is high, the pet asks you to step away, and it does this only at natural boundaries: while the agent is working, or right after it stops. When you take a break, the pet rests too, recovers, and may bring something back. It is a mirror, not a nag.
 
 ### 1.3 Target user
 - **Primary:** a developer or indie hacker who spends 4+ hours a day in Cursor's agent chat, often with several agents in parallel, often late.
@@ -43,7 +43,7 @@ A small pet in the Cursor sidebar mirrors your cognitive load. Every prompt you 
 10. **Vary everything.** Identical reminders stop being noticed after the second time (Anderson et al., CHI 2015). Rotate lines, poses and break exercises.
 
 ### 1.5 Non-goals (hackathon)
-- A standalone desktop overlay window (Electron/Tauri).
+- Packaging and signing the overlay as a `.app`/installer. `npm start` is enough for the demo.
 - Support for tools other than Cursor (IDE agent chat). Cursor CLI works through the same hooks, but we don't target it.
 - ML or LLM analysis of mood. A local keyword regex is enough for "frustration".
 - An economy, shop, achievements, multiplayer, statistics dashboard or settings UI beyond a couple of toggles.
@@ -60,14 +60,22 @@ A small pet in the Cursor sidebar mirrors your cognitive load. Every prompt you 
 | Option | Sees agent activity? | Can show UI? | Can detect breaks? | Cost in 2 h | Verdict |
 |---|---|---|---|---|---|
 | **Cursor Hooks** (`hooks.json`) | **Yes, push-based**: prompts, agent stops, responses, file edits, tools, subagents, sessions, compaction | Very limited: `preCompact.user_message`, `beforeSubmitPrompt` block message | No | Low; prototype measured at ~28 ms per call | **Use as the signal source** |
-| **VS Code extension** (runs in Cursor) | No. `vscode.cursor` only exposes `mcp.registerServer` and `plugins.registerPath` | **Yes**: sidebar webview, status bar, notifications with buttons | **Yes**: `window.onDidChangeWindowState`, typing activity | Medium | **Use as host for engine and UI** |
+| **VS Code extension** (runs in Cursor) | No. `vscode.cursor` only exposes `mcp.registerServer` and `plugins.registerPath` | **Yes**: sidebar webview, status bar, notifications with buttons | **Yes**: `window.onDidChangeWindowState`, typing activity | Medium | v1: host for engine and UI. **v1.1: optional (stretch)**, because the Agents Window doesn't load extensions |
 | **Cursor plugin** (`.cursor-plugin/plugin.json`) | Bundles hooks, rules, MCP; same signals as hooks | No webview UI by itself | No | Low–medium | **Post-hackathon packaging** ("one-click install") |
 | **Skills / rules** (`.cursor/rules/*.mdc`, skills) | No; they only add text to the agent's context | No | No | Low | **Not a signal source.** Useful for repo conventions only |
 | **MCP server** | Only when the agent decides to call a tool (pull, not push); can't see waiting or reading time | No | No | Medium | **Optional bonus**: an agent can ask "is my human tired?" and answer shorter. Register from the extension |
-| **Standalone desktop app** | Still needs hooks for signals | Yes, but outside the editor | Yes (OS idle) | High (packaging, windows, IPC) | **Rejected for MVP.** No new signals, more work, more intrusive |
+| **Standalone desktop app** (Electron overlay) | Still needs hooks for signals | **Yes**, floating over every window, including Cursor's Agents Window | Yes (OS idle) | Medium if unpackaged (`npm start`) | **Use as the UI host (v1.1)** |
+| **Cursor Agents Window surfaces** (Canvas, Browser tab) | No | Canvas: no live data (no `fetch`, data baked in). Browser tab: any localhost page | No | Low | **Browser tab = UI fallback.** Canvas rejected |
 
 ### 2.2 Decision
-**Hooks → local event log → VS Code extension with a sidebar webview.** This confirms the tech plan's recommendation, with three refinements:
+**v1.1 (current): Hooks → local event log → engine → `state.json` → Electron overlay.**
+- The team works in Cursor's **Agents Window**, which does not load VS Code extensions ([forum](https://forum.cursor.com/t/extensions-in-agent-window/156603)). A sidebar webview would be invisible there.
+- The pet is a web page (HTML/SVG/CSS) in `overlay/web/`, shown in a transparent, frameless, always-on-top Electron window. It watches `state.json` (§4.4.1). Owner: `ui`. See [ui-electron-overlay](specs/ui-electron-overlay.md).
+- **Fallback:** `npm run serve` serves the same page on `http://127.0.0.1:4517/`, polling `state.json`; open it in Cursor's built-in Browser tab.
+- The **engine runs as a standalone Node process** (`pet`), not in the extension host. It tails `events.jsonl` and writes `state.json`.
+- The **VS Code extension becomes optional (stretch)**: useful in the classic editor for window-focus signals and the Connect button, but nothing depends on it.
+
+**v1 (superseded for the UI host): Hooks → local event log → VS Code extension with a sidebar webview.** The refinements below still apply to hooks; read "extension" as "installer script" where the extension is absent:
 
 1. **Install hooks globally for real users, per project for us.**
    - This repo ships `.cursor/hooks.json` so the team dogfoods while building. We get free real fixtures this way.
@@ -82,7 +90,9 @@ A small pet in the Cursor sidebar mirrors your cognitive load. Every prompt you 
 
 ### 2.3 Tradeoffs we accept
 - **No "diff accepted/rejected" signal.** Neither hooks nor the extension API expose it. Proxies: `afterFileEdit` counts, and user typing shortly after agent edits.
-- **Webviews don't render in Cursor's bottom panel** (known Cursor bug), so the pet lives in a sidebar view container. Status bar is the always-visible fallback.
+- **No Cursor window-focus or typing signals without the extension.** In the Agents Window we lose `ext.windowFocus`/`ext.windowBlur`/`ext.userTyping`. Natural breaks must come from OS idle time or gaps between hook events (Q11).
+- **The overlay is outside Cursor.** It can be covered by full-screen apps on some setups and is one more process to start. Acceptable for the demo; the Browser-tab fallback covers the rest.
+- **Webviews don't render in Cursor's bottom panel** (known Cursor bug). Only relevant to the optional extension.
 - **Project hooks require a trusted workspace.** Hooks may need a "Reload Window" and a new chat after install.
 - **Windows runs hook commands through PowerShell.** We use `node <script>`, not bash, and never a GUI process (Cursor won't wait for it).
 - **Invalid JSON from a `before*` hook blocks the action.** Our hook always prints valid JSON (`{"continue":true}` for `beforeSubmitPrompt`, `{}` otherwise) and always exits 0.
@@ -95,28 +105,38 @@ A small pet in the Cursor sidebar mirrors your cognitive load. Every prompt you 
 
 All user scenarios live in [specs/pet-use-cases.md](specs/pet-use-cases.md).
 
+v1.1 note: where a scenario says "sidebar", "status bar", "extension" or `.vsix`, read "the overlay" (§2.2). Scenarios that rely on Cursor window focus (natural breaks) need Q11. If the engine runner or overlay is off, hooks keep logging; the runner catches up from the log tail on start, and the overlay shows "engine offline" while `state.json` is stale.
+
 ---
 
 ## 4. Architecture
 
 ### 4.1 Overview
 
+v1.1 (current):
+
 ```
-Cursor agent ──hooks──▶ node hooks/pet-hook.js ──append──▶ $PET_DIR/events.jsonl
-                              │ (reads state.json only for optional soft lock)
-                              ▼
-VS Code extension in Cursor (extension host)
-  ├─ engine (pure TS, no `vscode` import)      ◀── tails events.jsonl                  [pet]
-  │    events → PetState (load, mood, reasons, nudge) ──▶ writes $PET_DIR/state.json
-  ├─ glue: activation, state store, ext.* signals (focus/blur, typing),                [pet]
-  │        commands, nudge dispatcher (picks a channel, see §4.8)
-  │          │ ToWebview / FromWebview messages, NudgeChannel calls
-  │          ▼
-  ├─ ui: sidebar webview (pet, animations, bubble, buttons), status bar look,          [ui]
-  │      notification look, NudgeChannel renderers
+Cursor agent ──hooks──▶ node hooks/pet-hook.js ──append──▶ $PET_DIR/events.jsonl ◀──append ext.* (clicks)──┐
+                              │ (reads state.json only for optional soft lock)  │                          │
+                                                                                ▼                          │
+engine runner: standalone Node process (pure TS engine, no `vscode`)   ◀── tails events.jsonl     [pet]    │
+     events → PetState (load, mood, reasons, nudge) ──atomic write──▶ $PET_DIR/state.json                  │
+                                                                                │ fs.watch / poll          │
+                                                                                ▼                          │
+overlay/ (Electron main: watcher, window, tray) ──IPC──▶ web/ pet page (moods, bubble, buttons)  [ui] ─────┘
+   └─ fallback: overlay/serve.mjs on 127.0.0.1:4517 ──poll /state.json──▶ same page in Cursor's Browser tab
 ```
 
-The `[role]` tags show who owns each part. Data flows one way: `hooks` produces events, `pet` turns them into state and decisions, and `ui` renders them. User clicks flow back from `ui` as `FromWebview` messages to `pet`.
+The `[role]` tags show who owns each part. Data flows one way: `hooks` produces events, `pet` turns them into state and decisions, and `ui` renders them. User clicks flow back from `ui` as `ext.*` events appended to `events.jsonl`, which `pet`'s engine reads like any other event. The only files shared between processes are `events.jsonl` (append-only) and `state.json` (§4.4.1).
+
+v1 (optional extension, stretch): the engine and glue run in the VS Code extension host and render a sidebar webview, as below.
+
+```
+VS Code extension in Cursor (extension host)
+  ├─ engine (pure TS, no `vscode` import)      ◀── tails events.jsonl                  [pet]
+  ├─ glue: activation, ext.* signals (focus/blur, typing), commands, dispatcher        [pet]
+  ├─ ui: sidebar webview, status bar look, NudgeChannel renderers                      [ui]
+```
 
 `PET_DIR` defaults to `~/.cursor-pet/` and can be overridden with the `CURSOR_PET_DIR` env variable. Replay and tests always use a temp directory.
 
@@ -131,8 +151,10 @@ The `[role]` tags show who owns each part. Data flows one way: `hooks` produces 
 | Dogfood config | `.cursor/hooks.json` | `hooks` | Project-level hooks for this repo |
 | Engine | `engine/src/` | `pet` | Reducer and load score, tail of the log, nudge policy (when and what: timing, cooldown, escalation, override, exercise choice, pet lines), `state.json` writer, clock injection |
 | Replay / time-warp | `engine/scripts/replay.mjs` | `pet` | Play a fixture into a temp `PET_DIR` with compressed time |
-| Extension glue | `extension/package.json`, `extension/src/extension.ts`, `extension/src/glue/` | `pet` | Activation, manifest contributions (views, commands, settings), engine wiring, state store, `ext.*` signals, commands, nudge dispatcher, `.vsix` build |
-| Presentation | `extension/src/ui/`, `extension/webview/`, `extension/media/` | `ui` | Webview view provider and HTML/CSS/JS, sprites and animations per mood and per exercise, status bar look, notification look, `NudgeChannel` renderers |
+| Engine runner | `engine/` (e.g. `engine/scripts/run.mjs`) | `pet` | Standalone Node process: tails `events.jsonl`, runs the engine, writes `state.json` per §4.4.1. Supports `--speed` and `--dir` for the demo |
+| Overlay | `overlay/` | `ui` | Electron main (transparent always-on-top window, tray, `state.json` watcher), the pet page `overlay/web/` (sprites and animations per mood and exercise, bubble, buttons), the localhost fallback `serve.mjs`, `fake-state.mjs` |
+| Extension glue *(optional, stretch)* | `extension/package.json`, `extension/src/extension.ts`, `extension/src/glue/` | `pet` | Activation, manifest contributions, engine wiring, `ext.*` focus/typing signals, Connect command, `.vsix` build |
+| Extension presentation *(optional, stretch)* | `extension/src/ui/`, `extension/webview/`, `extension/media/` | `ui` | Webview view provider (may load `overlay/web/`), status bar look, `NudgeChannel` renderers |
 
 **Fatigue-fighting split.** `pet` decides **when** to intervene and **what** the intervention is: the nudge level, the exercise (20-20-20, cyclic sigh, stretch), the pet's line, the escalation and the override rules. `ui` decides **how it looks and feels**: the animation for each mood and exercise, the bubble and toast design, colors and motion. `hooks` decides **what we can observe**: which Cursor events exist, what each one means and which fields it carries. The meeting points are `Nudge` (`pet` → `ui`) and `PetEvent` (`hooks` → `pet`).
 
@@ -179,7 +201,7 @@ export interface PetEvent {
 
 Rules:
 - **Append-only.** Writers use `appendFileSync`, one line per event. Readers skip malformed lines.
-- **Only `extension/` writes `ext.*` events**, and it writes them through `engine.push()`, which also appends them to the log. The log stays the single source of truth for replay.
+- **Only `overlay/` and `extension/` write `ext.*` events.** The overlay appends them directly with `src: "ext"` and `data.window: "overlay"` (mapping in `overlay/README.md`). The extension, if used, writes them through `engine.push()`. Either way the log stays the single source of truth for replay.
 - **Additive changes only** while the hackathon runs: new optional fields or new types. Never rename or remove.
 
 ### 4.4 Engine API and state (`contract/state.ts`)
@@ -238,6 +260,16 @@ export type FromWebview =
 ```
 
 Breaks are pushed as events (`ext.breakStart`), not through a special method, so replay sees them too.
+
+### 4.4.1 `state.json` file contract (`pet` writes, `ui` and `hooks` read)
+The overlay renders only what is in this file, so it is the hard interface between `pet` and `ui`.
+- **Path:** `$CURSOR_PET_DIR/state.json`, default `~/.cursor-pet/state.json`. Writers and readers both honor `CURSOR_PET_DIR`.
+- **Content:** one `PetState` object (§4.4, `contract/state.ts` once it lands), UTF-8 JSON, `v: 1`.
+- **Atomic writes:** write to a temp file in the same directory, then `rename` over `state.json`. Readers skip unparsable content and retry, but atomic writes avoid flicker.
+- **Heartbeat:** rewrite at least every 30 s even if nothing changed (bump `updatedAt`). Readers treat `updatedAt` older than **2 min** as "engine offline": the overlay greys out and the hook ignores `lock`.
+- **Fields the overlay uses today:** `updatedAt`, `mood` (unknown values render as `egg`), `load` (0–100), `reasons[0]`, `nudge` (shown as a bubble when `level >= 1`, using `nudge.text` verbatim and `nudge.id` for replies). Other fields are passed through and may be used later; additive changes only.
+- **Replies:** the overlay never writes `state.json`. It appends `ext.*` events to `events.jsonl` (§4.3).
+- **Dev without the engine:** `cd overlay && npm run fake` writes a valid file that cycles through every mood and two nudges.
 
 ### 4.5 Pet state model
 
@@ -363,7 +395,7 @@ Do **not** use `stop.followup_message`. It auto-sends a prompt to the agent.
 ### 4.9 Time-warp and replay (demo)
 - **Clock injection.** The engine takes `now()` and `speed`. With `speed = 60`, one real second counts as one minute for all time-based rules.
 - **Replay.** `node engine/scripts/replay.mjs <fixture> --speed 60 --dir <tmp>` rewrites fixture timestamps relative to now and appends lines on schedule.
-- **Demo mode.** The extension exposes a "Pet: Demo mode (time-warp ×60)" command that points the engine at a temp `PET_DIR` and starts replay, so the real log stays clean.
+- **Demo mode.** Run the engine runner and replay against a temp `PET_DIR` with `--speed 60`, and start the overlay with the same `CURSOR_PET_DIR`, so the real log stays clean. (v1: an extension command did the same.)
 - **Fixtures** (in `contract/fixtures/`):
   - `session-calm.jsonl` and `session-overload.jsonl`: one synthetic and one recorded from real dogfooding;
   - `states.json`: one `PetState` per mood, plus one with an active nudge per exercise, so `ui` can build the whole UI without the engine.
@@ -394,8 +426,9 @@ demolition-daddy/
 │     ├─ *.jsonl                 event logs (synthetic + recorded)                    hooks
 │     └─ states.json             one state per mood and per exercise                  pet
 ├─ hooks/                        pet-hook.js, install.mjs                             hooks
-├─ engine/                       src/, test/, scripts/replay.mjs (no vscode import)   pet
-├─ extension/
+├─ engine/                       src/, test/, scripts/replay.mjs, runner (no vscode)  pet
+├─ overlay/                      Electron overlay, web/ pet page, serve.mjs fallback  ui
+├─ extension/                    optional (stretch); split as below
 │  ├─ package.json, esbuild.mjs, tsconfig.json                                        pet
 │  ├─ src/extension.ts           activate(): wires engine, glue and ui                pet
 │  ├─ src/glue/                  state store, ext.* signals, commands, dispatcher     pet
@@ -410,7 +443,7 @@ demolition-daddy/
 Conflict rules:
 - **Edit only your role's paths.** For anything else, write a change note (see AGENTS.md "Claim a role") and let the owner make the change.
 - **`extension/package.json` belongs to `pet`.** `ui` needs view, icon and color contributions in it, so `pet` creates them in the skeleton (view container `demolitionDaddy`, view `demolitionDaddy.pet`). `ui` asks `pet` for further changes.
-- **No root `package.json` and no shared lockfile.** `engine/` and `extension/` each have their own. `hooks/` has zero dependencies (plain Node ≥ 18).
+- **No root `package.json` and no shared lockfile.** `engine/`, `overlay/` and `extension/` each have their own. `hooks/` has zero dependencies (plain Node ≥ 18). `overlay/` depends on Electron only, and does not import `engine/`; the two talk through files.
 - **`extension/` bundles `../engine/src`, `../contract` and `../hooks/install.mjs`** with esbuild, so there's no npm linking.
 - **`contract/` changes are additive only,** in a separate PR titled `contract: …`, announced in chat. It needs approval from `pet` plus the consuming role.
 
@@ -426,9 +459,9 @@ Claim a role by its ID: "I'm taking role `hooks`". Branch prefixes, commit areas
 
 | Role ID | Name | Owns | First tasks (T0 → checkpoint 1) | Freeze deliverable | Interfaces with |
 |---|---|---|---|---|---|
-| **`ui`** | Design & UI | `extension/src/ui/`, `extension/webview/`, `extension/media/` | Pick the pet's name and art style. Build the sidebar pet as a standalone page first (open `webview/index.html` in a browser, switch through `states.json`). Draw all 7 moods and the 4 exercise animations. Design the bubble, status bar and toast | `activateUi()` with the webview provider and `NudgeChannel` renderers for bubble, toast and status bar. Guided-break screens, locked screen, Connect screen, loot reveal | `pet`, through `ToWebview`/`FromWebview`, `UiBridge`, `NudgeChannel`, `Mood` and `exercise` IDs |
+| **`ui`** | Design & UI | `overlay/`; optional: `extension/src/ui/`, `extension/webview/`, `extension/media/` | Pick the pet's name and art style. Replace the placeholder pet in `overlay/web/` (run `npm run fake` to cycle states). Draw all 7 moods and the 4 exercise animations. Design the bubble | Overlay on macOS: all moods, nudge bubble, guided-break screens, locked screen, loot reveal. Localhost fallback works in Cursor's Browser tab | `pet`, through `state.json` (§4.4.1) and `ext.*` events (§4.3), `Mood` and `exercise` IDs |
 | **`hooks`** | Cursor hooks & events | `hooks/`, `.cursor/hooks.json`, `contract/events.ts`, `contract/fixtures/*.jsonl` | Write `contract/events.ts` from §4.3. Implement `pet-hook.js` and `.cursor/hooks.json`. Verify real payload fields in Cursor for each hook. Record one real session as a fixture and write one synthetic overload fixture | Idempotent installer and uninstaller exported as a function. Frustration flag. `preCompact` message. Hook side of the soft lock (if chosen). A doc of which hook means what (`docs/specs/hooks-event-map.md`) | `pet`, through `events.jsonl` (`PetEvent`), `state.json` (lock), and the `install()`/`uninstall()` API |
-| **`pet`** | Pet behavior & glue (integrator) | `engine/`, `extension/package.json`, `extension/src/extension.ts`, `extension/src/glue/`, `contract/state.ts`, `contract/actions.ts`, `contract/fixtures/states.json`, `AGENTS.md`, `README.md`, `.cursor/rules/` | Write `contract/state.ts` and `actions.ts` from §4.4 and §4.8, plus `states.json`; push them first, since `ui` needs them. Create the extension skeleton (manifest, `activate`, an empty view) so `ui` can press F5. Engine reducer and load score passing `node --test` on fixtures | Nudge policy (boundaries, cooldown, ladder, override, exercise rotation, pet lines), `speed` time-warp, `replay.mjs`, `state.json` writer, lock decision, `ext.*` signals, dispatcher, demo-mode command, `.vsix`. End-to-end smoke test after each merge | `hooks` (events in, lock out) and `ui` (state out, clicks in) |
+| **`pet`** | Pet behavior & glue (integrator) | `engine/`, `contract/state.ts`, `contract/actions.ts`, `contract/fixtures/states.json`, `AGENTS.md`, `README.md`, `.cursor/rules/`; optional: `extension/package.json`, `extension/src/extension.ts`, `extension/src/glue/` | Write `contract/state.ts` and `actions.ts` from §4.4 and §4.8, plus `states.json`; push them first, since `ui` needs them. Engine reducer and load score passing `node --test` on fixtures. A standalone engine runner that writes `state.json` per §4.4.1 (the extension skeleton is now optional) | Nudge policy (boundaries, cooldown, ladder, override, exercise rotation, pet lines), `speed` time-warp, `replay.mjs`, runner with `--speed`/`--dir` for demo mode, lock decision, break detection without focus events (Q11). Optional: extension and `.vsix`. End-to-end smoke test after each merge | `hooks` (events in, lock out) and `ui` (state out, clicks in) |
 
 Fixtures decouple everyone: `pet` builds the engine on event fixtures, `ui` builds the UI on state fixtures, and `hooks` produces real data.
 
@@ -476,7 +509,9 @@ About 2 hours remain after this document lands. T0 is the moment everyone has pu
 | Q7 | Loot/adventure: in MVP or not? | `pet` decides, `ui` draws | One hat after a ≥ 60 s break, if time allows |
 | Q8 | `ext.userTyping` noise: how to separate agent edits from user typing | `pet` | Treat edits within 2 s after `afterFileEdit` as agent edits |
 | Q9 | Can hooks give token usage or model cost per turn? (would be a better load signal than char counts) | `hooks` | Use `chars` until verified |
-| Q10 | Packaging after the hackathon: Cursor plugin (hooks + MCP) plus extension? | all | Post-hackathon |
+| Q10 | Packaging after the hackathon: Cursor plugin (hooks + MCP) plus overlay app? | all | Post-hackathon |
+| Q11 | Natural breaks without the extension's window-focus signal | `pet` (+ `ui` if the overlay emits it) | Engine treats a gap of ≥ 3 min with no hook events and no agent working as a break. Optional: the overlay emits `ext.windowBlur`/`ext.windowFocus` with `data.window: "os-idle"` from Electron's system idle time |
+| Q12 | Who starts the engine runner for the demo? | `pet` + `ui` | Two terminals: `node engine/scripts/run.mjs` and `cd overlay && npm start`. Later the overlay may spawn the runner |
 
 ---
 
