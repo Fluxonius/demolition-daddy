@@ -14,6 +14,8 @@ const read = (f) => fs.readFileSync(path.join(web, f), 'utf8');
 const html = read('preview.html')
   .replace('<link rel="stylesheet" href="pixel.css">', () => `<style>\n${read('pixel.css')}</style>`)
   .replace('<script src="sprites.js"></script>', () => `<script>\n${read('sprites.js')}</script>`)
-  .replace('<script src="pixel.js"></script>', () => `<script>\n${read('pixel.js')}</script>`);
+  .replace('<script src="pixel.js"></script>', () => `<script>\n${read('pixel.js')}</script>`)
+  .replace('<script src="display.js"></script>', () => `<script>\n${read('display.js')}</script>`)
+  .replace('<script src="states.js"></script>', () => `<script>\n${read('states.js')}</script>`);
 fs.writeFileSync(out, html);
 console.log(`Wrote ${out}`);
