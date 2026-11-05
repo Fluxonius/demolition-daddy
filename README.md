@@ -28,7 +28,7 @@ Tune it to your taste: right-click Pixel → **Settings…**
 
 ## Try it
 
-**macOS:** download [NapCat-universal.dmg](https://github.com/Fluxonius/demolition-daddy/releases/latest/download/NapCat-universal.dmg), drag it to Applications, then right-click → **Open** (it's unsigned). Pixel starts in demo mode.
+**macOS:** download [NapCat-universal.dmg](https://github.com/Fluxonius/demolition-daddy/releases/latest/download/NapCat-universal.dmg), drag it to Applications, then right-click → **Open** (it's unsigned). On first launch NapCat starts its engine and plays a simulated scenario; click **AI** on the pet to watch the agent's reasoning.
 
 **Any OS, from source:**
 
@@ -44,7 +44,7 @@ Other Cursor pets (Codogotchi, cursor-gotchi, tokengotchi) grow when you use mor
 
 Backed by: [HBR/BCG "AI brain fry"](https://hbr.org/2026/03/when-using-ai-leads-to-brain-fry) (supervising AI is the most draining part), [CHI 2026](https://dl.acm.org/doi/full/10.1145/3772318.3791176) (fatigue builds faster with AI), [micro-break meta-analysis](https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0272460) (short breaks reduce fatigue).
 
-Status: hackathon build. Live today: the overlay with every pet state, animations, the speech bubble and settings, driven by a fake engine for the demo. In progress: the Cursor hooks, the load engine and the Cursor CLI AI layer. Design: [foundation spec](docs/foundation-spec.md).
+Status: hackathon build. Live today: Cursor hooks, the load engine with the Cursor CLI AI layer (falls back to local rules), the overlay with every pet state, bubble nudges, settings, and the Agent Inspector with simulated events. Next: escalation policy and the soft prompt-lock. Design: [foundation spec](docs/foundation-spec.md).
 
 ## For judges
 **macOS app (no Node, no npm):**
