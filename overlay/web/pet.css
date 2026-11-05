@@ -125,3 +125,25 @@ body.browser #root { justify-content: center; }
   font-size: 9px;
   padding: 0 3px;
 }
+/* ---- Settings gear: appears on hover over the pet ---- */
+#root { position: relative; }
+.gear {
+  position: absolute;
+  top: 6px;
+  right: 22px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 2px solid #f5f5f5;
+  background: #000;
+  color: #f5f5f5;
+  font-size: 13px;
+  line-height: 16px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity .15s steps(2);
+}
+.gear[hidden] { display: none; }
+#root:hover .gear, .gear:focus-visible { opacity: 1; }
+.gear:hover { background: #4caf50; }
+.no-meter .meter { display: none; }

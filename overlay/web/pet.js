@@ -33,6 +33,8 @@
   let bubble = null; // bubble currently on screen
   let bubbleKey = null;
   let prev = { mood: null, onBreak: false };
+  let settings = null; // UI-side fields of settings.json (lib/settings.js); null until the host sends them
+  let lastChirpId = null;
 
   (function scheduleBlink() {
     setTimeout(() => {
@@ -91,8 +93,17 @@
       if (preview.overlays !== null) d.overlays = preview.overlays.split(',').filter(Boolean);
       d.stale = false;
     }
+    if (settings && !isPreview && isQuiet(new Date())) {
+      if (d.bubble && d.bubble.source === 'nudge') d.bubble = null;
+      if (d.mood !== 'resting' && d.mood !== 'egg' && !d.exercise) d.face = 'sleeping';
+    }
+    if (d.bubble && d.bubble.source === 'nudge' && d.bubble.nudgeId !== lastChirpId) {
+      lastChirpId = d.bubble.nudgeId;
+      if (settings && settings.pet.sound) chirp();
+    }
 
-    root.className = `mood-${d.mood} face-${d.exercise ? 'exercise' : d.face}` + (d.stale ? ' offline' : '');
+    root.className = `mood-${d.mood} face-${d.exercise ? 'exercise' : d.face}` + (d.stale ? ' offline' : '') +
+      (settings && !settings.pet.showMeter ? ' no-meter' : '');
     const key = [d.face, d.exercise || '', d.overlays.join(',')].join('|');
     if (key !== drawnKey) {
       drawnKey = key;
@@ -206,6 +217,50 @@
     e.preventDefault();
     host.showMenu();
   });
+
+  function isQuiet(date) {
+    const n = settings.night;
+    if (!n.quietHours) return false;
+    const toMin = (t) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3));
+    const now = date.getHours() * 60 + date.getMinutes();
+    const a = toMin(n.quietStart);
+    const b = toMin(n.quietEnd);
+    if (a === b) return false;
+    return a < b ? now >= a && now < b : now >= a || now < b;
+  }
+
+  function chirp() {
+    try {
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.setValueAtTime(1320, ctx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.05, ctx.currentTime);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.16);
+      osc.onended = () => ctx.close();
+    } catch {
+      // audio is optional
+    }
+  }
+
+  function applySettings(s) {
+    settings = s;
+    const name = (s && s.pet.name) || 'Pixel';
+    document.title = name;
+    pet.setAttribute('aria-label', `${name} the pet`);
+    render(current);
+  }
+
+  if (host.openSettings) {
+    const gear = $('gear');
+    gear.hidden = false;
+    gear.addEventListener('click', () => host.openSettings());
+  }
+  if (host.onSettings) host.onSettings(applySettings);
 
   render(null);
   host.onState(onState);
