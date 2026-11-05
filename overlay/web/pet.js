@@ -1,7 +1,7 @@
 // Renders PetState (foundation spec §4.4). Two hosts:
 // - Electron overlay: window.petHost from preload.js pushes state on every state.json change.
 // - Browser fallback (npm run serve): polls GET state.json and POSTs clicks to /action.
-// Preview a mood without any state: ?mood=tired (or melting, sleeping, ...).
+// Preview without any state: ?mood=tired, ?exercise=stretch, ?overlays=nightcap,sweaty.
 (() => {
   'use strict';
   const MOODS = ['egg', 'happy', 'focused', 'tired', 'melting', 'sleeping', 'resting'];
@@ -13,12 +13,16 @@
   const pet = $('pet');
   const params = new URLSearchParams(location.search);
   const previewMood = params.get('mood');
+  const previewExercise = params.get('exercise');
+  const previewOverlays = params.get('overlays');
+  const EXERCISE_MS = 60 * 1000;
 
   const host = window.petHost || browserHost();
   if (host.kind !== 'electron') document.body.classList.add('browser');
 
   let current = null;
-  let drawnMood = null;
+  let drawnKey = null;
+  let localExercise = null; // { name, until } after the user clicks "Let's go"
   let sprite = null;
 
   (function scheduleBlink() {
@@ -58,9 +62,19 @@
     if (MOODS.includes(previewMood)) mood = previewMood;
 
     root.className = `mood-${mood}` + (stale && !previewMood ? ' offline' : '');
-    if (mood !== drawnMood) {
-      drawnMood = mood;
-      sprite = window.PixelPet.renderPet(pet, mood);
+
+    // A stale state shows the waiting (egg) face rather than a frozen mood.
+    const faceMood = stale && !previewMood ? 'egg' : mood;
+    let exercise = previewExercise;
+    if (!exercise && localExercise && Date.now() < localExercise.until) exercise = localExercise.name;
+    if (!exercise && state && !stale && state.onBreak && state.nudge && state.nudge.exercise) exercise = state.nudge.exercise;
+    const overlays = previewOverlays !== null
+      ? previewOverlays.split(',').filter(Boolean)
+      : (state && !stale && Array.isArray(state.overlays) ? state.overlays : []);
+    const key = [faceMood, exercise || '', overlays.join(',')].join('|');
+    if (key !== drawnKey) {
+      drawnKey = key;
+      sprite = window.PixelPet.renderPet(pet, faceMood, { exercise, overlays });
     }
 
     const load = state && Number.isFinite(state.load) ? Math.max(0, Math.min(100, state.load)) : 0;
@@ -81,7 +95,15 @@
     if (nudge) $('bubble-text').textContent = nudge.text;
   }
 
-  $('accept').addEventListener('click', () => current && current.nudge && host.send({ type: 'nudgeAccepted', id: current.nudge.id }));
+  $('accept').addEventListener('click', () => {
+    if (!current || !current.nudge) return;
+    host.send({ type: 'nudgeAccepted', id: current.nudge.id });
+    if (current.nudge.exercise) {
+      localExercise = { name: current.nudge.exercise, until: Date.now() + EXERCISE_MS };
+      render(current);
+      setTimeout(() => render(current), EXERCISE_MS + 50);
+    }
+  });
   $('dismiss').addEventListener('click', () => current && current.nudge && host.send({ type: 'nudgeDismissed', id: current.nudge.id }));
 
   // Drag the frameless window by the pet; a click without movement pets it.

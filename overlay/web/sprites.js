@@ -15,6 +15,7 @@
     P: '#ff7aa8',    // blush
     B: '#6fa8ff',    // tired-blue (eye bags, sweat)
     Z: '#9ec5ff',    // sleep "z"
+    R: '#e04848',    // nightcap
   };
 
   // Canvas is SIZE x SIZE; the body sits at BODY_ORIGIN, leaving room for the "z" above.
@@ -101,6 +102,66 @@
     ],
   };
 
+  // Exercise faces (Nudge.exercise), shown instead of the mood face during a guided break.
+  const EXERCISES = {
+    'eyes-20-20-20': [  // looking far away
+      '..WW....WW',
+      '..WW....WW',
+      '..........',
+      '..........',
+      '....WW....',
+      '..........',
+    ],
+    'cyclic-sigh': [    // eyes closed, slow "o" exhale
+      '..........',
+      '..........',
+      '.WW....WW.',
+      '....WW....',
+      '...W..W...',
+      '....WW....',
+    ],
+    stretch: [          // > <  big grin
+      '.W......W.',
+      '..W....W..',
+      '.W......W.',
+      '..........',
+      '..WWWWWW..',
+      '...WWWW...',
+    ],
+    walk: [             // glancing sideways, small smile
+      '..........',
+      'WW....WW..',
+      'WW....WW..',
+      '..........',
+      '...W..W...',
+      '....WW....',
+    ],
+  };
+
+  // Accessories drawn on top (PetState.overlays, proposed in docs/specs/pet-use-cases.md).
+  // Each has its own small grid and an origin on the canvas. They never change the body shape.
+  const OVERLAYS = {
+    stuffed: { origin: { x: 5, y: 11 }, grid: [   // puffed pink cheeks
+      'PP......PP',
+      'PP......PP',
+    ] },
+    bored: { origin: { x: 14, y: 1 }, grid: [     // "..." thought dots
+      'G.G.G',
+    ] },
+    sweaty: { origin: { x: 14, y: 6 }, grid: [    // sweat drop
+      '.B',
+      'BB',
+      'BB',
+    ] },
+    nightcap: { origin: { x: 4, y: 1 }, grid: [   // red nightcap with a pompom
+      '.......WW.',
+      '......RR..',
+      '....RRRR..',
+      '..RRRRRRR.',
+      'WWWWWWWWWW',
+    ] },
+  };
+
   // Blink frame: drawn over the current face for a moment. 'K' paints body color over open eyes.
   const BLINK = [
     '..........',
@@ -122,7 +183,7 @@
   const Z_ORIGIN = { x: 16, y: 0 };
   const Z_MOODS = ['sleeping'];
 
-  const sprites = { PALETTE, SIZE, BODY, BODY_ORIGIN, FACES, FACE_ORIGIN, BLINK, BLINK_MOODS, Z, Z_ORIGIN, Z_MOODS };
+  const sprites = { PALETTE, SIZE, BODY, BODY_ORIGIN, FACES, FACE_ORIGIN, EXERCISES, OVERLAYS, BLINK, BLINK_MOODS, Z, Z_ORIGIN, Z_MOODS };
   if (typeof module === 'object' && module.exports) module.exports = sprites;
   else root.PET_SPRITES = sprites;
 })(this);

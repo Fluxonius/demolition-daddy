@@ -17,6 +17,11 @@ test('every contract mood has a face', () => {
   for (const m of MOODS) assert.ok(s.FACES[m], `missing face: ${m}`);
 });
 
+test('every contract exercise has a face and every proposed overlay a grid', () => {
+  for (const e of ['eyes-20-20-20', 'cyclic-sigh', 'stretch', 'walk']) assert.ok(s.EXERCISES[e], `missing exercise: ${e}`);
+  for (const o of ['stuffed', 'bored', 'sweaty', 'nightcap']) assert.ok(s.OVERLAYS[o], `missing overlay: ${o}`);
+});
+
 test('grids are rectangular, use palette colors and fit the canvas', () => {
   const bw = s.BODY[0].length;
   checkGrid('BODY', s.BODY, bw, s.BODY.length);
@@ -24,7 +29,12 @@ test('grids are rectangular, use palette colors and fit the canvas', () => {
   const fw = s.FACES.happy[0].length;
   const fh = s.FACES.happy.length;
   for (const [m, rows] of Object.entries(s.FACES)) checkGrid(`FACES.${m}`, rows, fw, fh);
+  for (const [e, rows] of Object.entries(s.EXERCISES)) checkGrid(`EXERCISES.${e}`, rows, fw, fh);
   checkGrid('BLINK', s.BLINK, fw, fh);
+  for (const [o, { origin, grid }] of Object.entries(s.OVERLAYS)) {
+    checkGrid(`OVERLAYS.${o}`, grid, grid[0].length, grid.length);
+    assert.ok(origin.x + grid[0].length <= s.SIZE && origin.y + grid.length <= s.SIZE, `OVERLAYS.${o} overflows SIZE`);
+  }
   assert.ok(s.FACE_ORIGIN.x + fw <= bw && s.FACE_ORIGIN.y + fh <= s.BODY.length, 'face overflows BODY');
   checkGrid('Z', s.Z, s.Z[0].length, s.Z.length);
   assert.ok(s.Z_ORIGIN.x + s.Z[0].length <= s.SIZE, 'Z overflows SIZE');

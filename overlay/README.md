@@ -14,6 +14,7 @@ The pet is a plain web page (`web/`: HTML + pixel-art SVG + CSS) that renders `P
 ```bash
 cd overlay
 npm install          # Electron only; the binary downloads on the first `npm start`
+npm run demo         # pet + fake engine together, in a scratch state dir (quitting the pet stops both)
 npm start            # floating pet
 npm run fake         # in another terminal: writes a fake state.json, cycling all moods every 4 s
 npm run serve        # fallback: http://127.0.0.1:4517/ (PORT and HOST env override)
@@ -23,7 +24,7 @@ npm run preview -- out.html   # standalone all-moods preview (one self-contained
 
 Use a scratch state dir while developing: `CURSOR_PET_DIR=/tmp/pet npm run fake` and `CURSOR_PET_DIR=/tmp/pet npm start`.
 
-Preview a mood without any state: open the fallback with `?mood=tired` (or `egg`, `happy`, `focused`, `melting`, `sleeping`, `resting`).
+Preview without any state: add `?mood=tired` (or `egg`, `happy`, `focused`, `melting`, `sleeping`, `resting`), `?exercise=stretch` and/or `?overlays=nightcap,sweaty` to the page URL.
 
 In Cursor's Agents Window: **File > New Browser**, then go to `http://127.0.0.1:4517/`.
 
@@ -32,7 +33,10 @@ Open `web/sprites.js`. One character is one pixel; colors are letters in `PALETT
 - `BODY` is the same for every mood (black by default). Moods change only the face.
 - `FACES.<mood>` is a 10×6 grid drawn over the body at `FACE_ORIGIN`. Every mood in the contract needs one.
 - `BLINK` is drawn over the face for 140 ms every few seconds (moods in `BLINK_MOODS`). Use `K` to paint over open eyes.
+- `EXERCISES.<exercise>` (same 10×6 size) replaces the mood face during a guided break: when the user clicks **Let's go** on a nudge with an `exercise` (for 60 s), or while `onBreak` and `nudge.exercise` are set.
+- `OVERLAYS.<name>` are small accessories with their own origin, drawn on top for each name in `PetState.overlays` (`stuffed`, `bored`, `sweaty`, `nightcap`). They never change the body.
 - `Z` floats above the head in `Z_MOODS`.
+- The pet is always fully opaque. Only the window background is transparent. A missing or stale state shows the `egg` face and an "engine offline" label.
 
 Reload `web/preview.html` (open it directly, or via `npm run serve` at `/preview.html`) to see all moods. `npm test` catches ragged rows and unknown colors.
 
