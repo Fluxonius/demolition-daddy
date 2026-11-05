@@ -6,16 +6,21 @@
 
 <p align="center">
   <b>Other coding pets eat your tokens. Ours eats your breaks.</b><br>
-  Pixel is a pixel-art cat that floats over Cursor, gets tired as you supervise AI agents, and sends you to touch grass.
+  Pixel is an AI agent that's on <i>your</i> side: a pixel-art cat friend that watches over your mental state while you work with coding agents, and sends you to touch grass.
 </p>
+
+<p align="center"><b>Hackathon track: Multiplayer, human + agent collaboration.</b> Your coding agents do the work; Pixel looks after the human.</p>
 
 **Why:** coding with agents is nonstop supervision: decide, wait, read, decide again. Developers using AI were **19% slower but felt 20% faster** ([METR 2025](https://metr.org/blog/2025-07-10-early-2025-ai-experienced-os-dev-study/)). You can't feel your own overload. Pixel can.
 
 ## How it works
 
-1. **Cursor Hooks** see your agent work: prompts, waiting, long answers, edits. Only counts and durations, never your text.
-2. **Pixel gets tired** with you: happy, focused, tired, melting, asleep.
-3. **Pixel nudges you** while the agent thinks or right after it stops, never mid-typing: a 60-second break (eyes, breathing, stretch), or "time to go touch grass". Every nudge has a "Later".
+1. **Cursor Hooks capture your work signals:** prompts, agent turns, waiting time, edits, session length. Only counts and durations, never your text.
+2. **An AI agent (via the Cursor CLI) reads those metrics** and estimates how tired you are.
+3. **It picks Pixel's state:** happy, focused, tired, melting, asleep.
+4. **Pixel gives advice** while the agent thinks or right after it stops, never mid-typing: a speech bubble ("time to go touch grass") or a guided 60-second break (eyes, breathing, stretch). Every nudge has a "Later".
+
+Tune it to your taste: right-click Pixel → **Settings…**
 
 <p align="center"><img src="docs/assets/pet-bubble-message.png" width="260" alt="Tired Pixel: Time to go touch grass. 5 minutes outside?"></p>
 
@@ -33,7 +38,7 @@ Other Cursor pets (Codogotchi, cursor-gotchi, tokengotchi) grow when you use mor
 
 Backed by: [HBR/BCG "AI brain fry"](https://hbr.org/2026/03/when-using-ai-leads-to-brain-fry) (supervising AI is the most draining part), [CHI 2026](https://dl.acm.org/doi/full/10.1145/3772318.3791176) (fatigue builds faster with AI), [micro-break meta-analysis](https://journals.plos.org/plosone/article?id=10.1371%2Fjournal.pone.0272460) (short breaks reduce fatigue).
 
-Status: hackathon build. The pet runs today on a fake engine; the real hooks and engine are in progress. Design: [foundation spec](docs/foundation-spec.md).
+Status: hackathon build. Live today: the overlay with every pet state, animations, the speech bubble and settings, driven by a fake engine for the demo. In progress: the Cursor hooks, the load engine and the Cursor CLI AI layer. Design: [foundation spec](docs/foundation-spec.md).
 
 ## For judges
 **You need:** macOS (also works on Linux/Windows), [Node.js](https://nodejs.org) **22.12 or newer** (`node -v`), git. Internet access for the first `npm install`.
