@@ -8,26 +8,32 @@ function petDir() {
 }
 
 const statePath = () => path.join(petDir(), 'state.json');
+const messagesPath = () => path.join(petDir(), 'messages.json');
 const eventsPath = () => path.join(petDir(), 'events.jsonl');
+const actionsPath = () => path.join(petDir(), 'actions.jsonl');
 
-/** Returns the parsed state, or null if the file is missing or half-written. */
-function readState() {
+/** Returns the parsed JSON file in PET_DIR, or null if missing or half-written. */
+function readJson(name) {
   try {
-    return JSON.parse(fs.readFileSync(statePath(), 'utf8'));
+    return JSON.parse(fs.readFileSync(path.join(petDir(), name), 'utf8'));
   } catch {
     return null;
   }
 }
 
-/** Calls cb(state) whenever state.json changes. Survives atomic renames and a missing dir. */
-function watchState(cb, { pollMs = 1000 } = {}) {
+const readState = () => readJson('state.json');
+const readMessages = () => readJson('messages.json');
+
+/** Calls cb(json) whenever PET_DIR/<name> changes. Survives atomic renames and a missing dir. */
+function watchJson(name, cb, { pollMs = 1000 } = {}) {
   const dir = petDir();
+  const file = path.join(dir, name);
   fs.mkdirSync(dir, { recursive: true });
   let last = '';
   const check = () => {
     let raw;
     try {
-      raw = fs.readFileSync(statePath(), 'utf8');
+      raw = fs.readFileSync(file, 'utf8');
     } catch {
       raw = '';
     }
@@ -43,8 +49,8 @@ function watchState(cb, { pollMs = 1000 } = {}) {
   let debounce;
   let watcher;
   try {
-    watcher = fs.watch(dir, (_evt, name) => {
-      if (name && name !== 'state.json') return;
+    watcher = fs.watch(dir, (_evt, changed) => {
+      if (changed && changed !== name) return;
       clearTimeout(debounce);
       debounce = setTimeout(check, 50);
     });
@@ -60,4 +66,10 @@ function watchState(cb, { pollMs = 1000 } = {}) {
   };
 }
 
-module.exports = { petDir, statePath, eventsPath, readState, watchState };
+const watchState = (cb, opts) => watchJson('state.json', cb, opts);
+const watchMessages = (cb, opts) => watchJson('messages.json', cb, opts);
+
+module.exports = {
+  petDir, statePath, messagesPath, eventsPath, actionsPath,
+  readJson, readState, readMessages, watchJson, watchState, watchMessages,
+};

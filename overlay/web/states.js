@@ -96,7 +96,21 @@
     return ui;
   }
 
-  const api = { STATES, toPetState, toUi };
+  // Sample messages.json entries (proposed schema, README "Messages"): what an AI layer might say.
+  // `npm run fake` sends them one by one; ids get a timestamp suffix there so each send is new.
+  const MESSAGES = [
+    { id: 'touch-grass', text: 'Time to go touch grass. 5 minutes outside?', priority: 20, ttlMs: 45000, mood: 'tired',
+      buttons: [{ label: 'Going!', action: 'touch-grass.accept' }, { label: 'Not now', action: 'touch-grass.later' }] },
+    { id: 'water', text: 'Sip of water? You have been prompting for 50 min.', priority: 5, ttlMs: 20000, mood: 'asking',
+      buttons: [{ label: 'Done', action: 'water.done' }] },
+    { id: 'stretch', text: 'Shoulders up, hold, drop. Twice.', priority: 10, ttlMs: 30000, exercise: 'stretch',
+      buttons: [{ label: 'Did it', action: 'stretch.done' }, { label: 'Skip', action: 'stretch.skip' }] },
+    { id: 'nice-streak', text: '3 agent runs merged without a retry. Nice.', priority: 1, ttlMs: 12000, mood: 'celebrate' },
+    { id: 'wrap-up', text: 'It is 23:40. Save a note for tomorrow and stop?', priority: 60, ttlMs: 0, mood: 'sleeping',
+      buttons: [{ label: 'Wrap up', action: 'wrap-up.accept' }, { label: '15 more min', action: 'wrap-up.snooze15' }] },
+  ];
+
+  const api = { STATES, MESSAGES, toPetState, toUi };
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.PET_STATES = api;
 })(this);

@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
-const { petDir, readState } = require('./lib/pet-dir.js');
+const { petDir, readState, readMessages } = require('./lib/pet-dir.js');
 const { recordAction } = require('./lib/actions.js');
 
 const WEB = path.join(path.dirname(fileURLToPath(import.meta.url)), 'web');
@@ -24,6 +24,9 @@ const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
   if (url.pathname === '/state.json') {
     return send(res, 200, JSON.stringify(readState()));
+  }
+  if (url.pathname === '/messages.json') {
+    return send(res, 200, JSON.stringify(readMessages()));
   }
   if (url.pathname === '/action' && req.method === 'POST') {
     let body = '';

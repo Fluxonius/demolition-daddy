@@ -1,6 +1,6 @@
 // Renders PetState (foundation spec §4.4) through PetDisplay.displayState (display.js). Two hosts:
-// - Electron overlay: window.petHost from preload.js pushes state on every state.json change.
-// - Browser fallback (npm run serve): polls GET state.json and POSTs clicks to /action.
+// - Electron overlay: window.petHost from preload.js pushes state.json and messages.json on every change.
+// - Browser fallback (npm run serve): polls GET state.json + messages.json and POSTs clicks to /action.
 // Preview without any state: ?face=asking, ?mood=tired, ?exercise=stretch, ?overlays=nightcap,sweaty.
 (() => {
   'use strict';
@@ -25,10 +25,13 @@
   if (host.kind !== 'electron') document.body.classList.add('browser');
 
   let current = null;
-  let shown = null; // last displayState result
+  let messages = null; // last messages.json
   let drawnKey = null;
   let sprite = null;
-  const ui = { exercise: null, hatchUntil: 0, welcomeUntil: 0, heartsUntil: 0 };
+  const ui = { exercise: null, hatchUntil: 0, welcomeUntil: 0, heartsUntil: 0, handled: new Set(), firstSeen: {} };
+  const displayed = new Set(); // message ids that have been on screen, to report 'expire'
+  let bubble = null; // bubble currently on screen
+  let bubbleKey = null;
   let prev = { mood: null, onBreak: false };
 
   (function scheduleBlink() {
@@ -42,18 +45,20 @@
   })();
 
   function browserHost() {
+    const poll = (file) => (cb) => {
+      const tick = () =>
+        fetch(file, { cache: 'no-store' })
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null)
+          .then(cb);
+      tick();
+      const t = setInterval(tick, POLL_MS);
+      return () => clearInterval(t);
+    };
     return {
       kind: 'browser',
-      onState(cb) {
-        const tick = () =>
-          fetch('state.json', { cache: 'no-store' })
-            .then((r) => (r.ok ? r.json() : null))
-            .catch(() => null)
-            .then(cb);
-        tick();
-        const t = setInterval(tick, POLL_MS);
-        return () => clearInterval(t);
-      },
+      onState: poll('state.json'),
+      onMessages: poll('messages.json'),
       send(msg) {
         fetch('action', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(msg) })
           .catch(() => {});
@@ -77,7 +82,8 @@
   function render(state) {
     current = state;
     const now = Date.now();
-    const d = window.PetDisplay.displayState(state, { ...ui, now });
+    expireMessages(now);
+    const d = window.PetDisplay.displayState(state, { ...ui, messages, now });
     if (isPreview) {
       if (preview.face) d.face = preview.face;
       d.mood = window.PetDisplay.MOODS.includes(preview.face) ? preview.face : d.mood;
@@ -85,7 +91,6 @@
       if (preview.overlays !== null) d.overlays = preview.overlays.split(',').filter(Boolean);
       d.stale = false;
     }
-    shown = d;
 
     root.className = `mood-${d.mood} face-${d.exercise ? 'exercise' : d.face}` + (d.stale ? ' offline' : '');
     const key = [d.face, d.exercise || '', d.overlays.join(',')].join('|');
@@ -107,26 +112,68 @@
     $('label').textContent = label;
     $('label').title = state && state.reasons ? state.reasons.join('\n') : '';
 
-    $('bubble').hidden = !d.bubble;
-    if (d.bubble) {
-      $('bubble-text').textContent = d.bubble.text;
-      document.querySelector('.bubble-actions').hidden = !d.bubble.actions;
+    drawBubble(d.bubble, d.queued, now);
+  }
+
+  function drawBubble(b, queued, now) {
+    bubble = b;
+    $('bubble').hidden = !b;
+    if (!b) return (bubbleKey = null);
+    if (b.source === 'message') {
+      displayed.add(b.id);
+      if (!b.createdAt && !ui.firstSeen[b.id]) ui.firstSeen[b.id] = now;
+    }
+    const key = JSON.stringify([b.id, b.text, b.buttons, queued, b.dismissible]);
+    if (key === bubbleKey) return;
+    bubbleKey = key;
+    $('bubble').className = `bubble from-${b.source}` + (b.dismissible ? ' dismissible' : '');
+    $('bubble').title = b.dismissible ? 'Click to dismiss' : '';
+    $('bubble-text').textContent = b.text;
+    $('bubble-more').hidden = !queued;
+    $('bubble-more').textContent = `+${queued}`;
+    const box = $('bubble-buttons');
+    box.replaceChildren(
+      ...b.buttons.map((btn) => {
+        const el = document.createElement('button');
+        el.textContent = btn.label;
+        el.addEventListener('click', (e) => {
+          e.stopPropagation();
+          answer(b, btn.action);
+        });
+        return el;
+      }),
+    );
+    box.hidden = !b.buttons.length;
+  }
+
+  // Report and hide messages whose ttl ran out while (or after) they were on screen.
+  function expireMessages(now) {
+    const list = window.PetDisplay.validMessages(messages);
+    for (const m of list) {
+      if (!displayed.has(m.id) || ui.handled.has(m.id)) continue;
+      if (window.PetDisplay.isExpired(m, ui, now)) {
+        ui.handled.add(m.id);
+        host.send({ type: 'messageAction', id: m.id, action: 'expire' });
+      }
     }
   }
 
-  $('accept').addEventListener('click', () => {
-    const nudge = current && current.nudge;
-    if (!nudge || !shown || !shown.bubble) return;
-    host.send({ type: 'nudgeAccepted', id: nudge.id });
-    if (nudge.exercise) {
-      ui.exercise = { name: nudge.exercise, until: Date.now() + EXERCISE_MS };
-      setTimeout(() => render(current), EXERCISE_MS + 50);
-    }
+  function answer(b, action) {
+    ui.handled.add(b.id);
+    if (b.source === 'message') host.send({ type: 'messageAction', id: b.id, action });
+    else if (b.source === 'nudge' && action === 'accept') {
+      host.send({ type: 'nudgeAccepted', id: b.nudgeId });
+      const nudge = current && current.nudge;
+      if (nudge && nudge.id === b.nudgeId && nudge.exercise) {
+        ui.exercise = { name: nudge.exercise, until: Date.now() + EXERCISE_MS };
+        setTimeout(() => render(current), EXERCISE_MS + 50);
+      }
+    } else if (b.source === 'nudge') host.send({ type: 'nudgeDismissed', id: b.nudgeId });
     render(current);
-  });
-  $('dismiss').addEventListener('click', () => {
-    const nudge = current && current.nudge;
-    if (nudge && shown && shown.bubble) host.send({ type: 'nudgeDismissed', id: nudge.id });
+  }
+
+  $('bubble').addEventListener('click', () => {
+    if (bubble && bubble.dismissible) answer(bubble, 'dismiss');
   });
 
   // Drag the frameless window by the pet; a click without movement pets it.
@@ -162,5 +209,11 @@
 
   render(null);
   host.onState(onState);
+  if (host.onMessages) {
+    host.onMessages((m) => {
+      messages = m;
+      render(current);
+    });
+  }
   setInterval(() => render(current), 1000); // expire transient faces and re-check staleness
 })();
