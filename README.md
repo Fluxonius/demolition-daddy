@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/pet-demo.gif" width="300" alt="Pixel the cat floating on the desktop: happy, focused, tired, melting, asleep, then resting after a break">
+  <img src="docs/assets/pet-demo.gif" width="240" alt="Pixel the cat cycling through its states with idle animations: happy, focused, watching, tired, melting, asleep, resting, asking, celebrating">
 </p>
 
 <h1 align="center">Demolition Daddy</h1>
