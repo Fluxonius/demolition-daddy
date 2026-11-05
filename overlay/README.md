@@ -125,14 +125,17 @@ Rules the overlay applies:
 
 ## Controls (Electron)
 - **Drag** the pet to move the window. **Click** the pet to pet it.
-- **Right-click** the pet, or use the tray/menu-bar icon: show/hide, move back to bottom-right, DevTools, **Quit**.
+- **Right-click** the pet, or use the tray/menu-bar icon: **Settings…**, show/hide, move back to bottom-right, DevTools, **Quit**.
+- **Settings:** the ⚙ button that appears on hover, **Settings…** in either menu, or `npm start -- --settings`. Changes save instantly to `$CURSOR_PET_DIR/settings.json`; schema and the proposal for `pet`/`hooks` are in [docs/specs/ui-settings.md](../docs/specs/ui-settings.md).
 - macOS: no Dock icon (accessory app); the window stays above other apps and follows you across Spaces.
 
 ## Files
 | Path | What |
 |---|---|
-| `main.js` | Electron main: window, tray, `state.json` + `messages.json` watchers, IPC (drag, menu, actions) |
-| `preload.js` | Exposes `window.petHost` (`onState`, `onMessages`, `send`, `dragBy`, `showMenu`) to the page |
+| `main.js` | Electron main: window, tray, settings window, `state.json` + `messages.json` + `settings.json` watchers, IPC (drag, menu, actions, settings) |
+| `preload.js` | Exposes `window.petHost` (`onState`, `onMessages`, `send`, `dragBy`, `showMenu`, `openSettings`, `onSettings`) to the page |
+| `preload-settings.js`, `web/settings.*` | Settings window (form generated from `lib/settings.js`) |
+| `lib/settings.js` | Settings schema, defaults, validation, atomic `settings.json` read/write and watcher |
 | `web/` | The pet page. Mood = class `mood-<mood>` on `#root`; `offline` when state is missing or older than 2 min |
 | `web/sprites.js` | **Pixel art, edit by hand.** Palette, body grid, one face grid per mood, blink frame, sleep "z" |
 | `web/pixel.js`, `web/pixel.css` | Renders grids to crisp SVG `<rect>`s; idle bob and "z" float animations |

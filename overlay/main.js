@@ -3,6 +3,7 @@ const path = require('node:path');
 const { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage, screen } = require('electron');
 const { petDir, watchState, watchMessages } = require('./lib/pet-dir');
 const { recordAction } = require('./lib/actions');
+const settings = require('./lib/settings');
 
 const WIDTH = 220;
 const HEIGHT = 300;
@@ -13,6 +14,9 @@ let tray;
 let stopWatching = [];
 let lastState = null;
 let lastMessages = null;
+let settingsWin;
+let stopWatchingSettings;
+let currentSettings = settings.readSettings();
 
 if (!app.requestSingleInstanceLock()) app.quit();
 
@@ -51,10 +55,43 @@ function createWindow() {
   }
   win.loadFile(path.join(__dirname, 'web', 'index.html'));
   win.webContents.on('did-finish-load', () => {
+    win.webContents.send('pet:settings', currentSettings);
     win.webContents.send('pet:state', lastState);
     win.webContents.send('pet:messages', lastMessages);
   });
   win.on('closed', () => (win = null));
+}
+
+function openSettings() {
+  if (settingsWin) {
+    settingsWin.show();
+    settingsWin.focus();
+    return;
+  }
+  settingsWin = new BrowserWindow({
+    width: 380,
+    height: 600,
+    title: 'Pet settings',
+    frame: false,
+    resizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    alwaysOnTop: true,
+    backgroundColor: '#111111',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload-settings.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  settingsWin.loadFile(path.join(__dirname, 'web', 'settings.html'));
+  settingsWin.on('closed', () => (settingsWin = null));
+}
+
+function applySettings(next) {
+  currentSettings = next;
+  if (win) win.webContents.send('pet:settings', next);
+  if (settingsWin) settingsWin.webContents.send('settings:changed', next);
 }
 
 function trayIcon() {
@@ -78,6 +115,7 @@ function menuTemplate() {
   return [
     { label: `State dir: ${petDir()}`, enabled: false },
     { type: 'separator' },
+    { label: 'Settings…', click: openSettings },
     { label: 'Show / hide pet', click: () => (win.isVisible() ? win.hide() : win.showInactive()) },
     { label: 'Move to bottom-right', click: () => win.setBounds({ ...bottomRight(), width: WIDTH, height: HEIGHT }) },
     { label: 'Open DevTools', click: () => win.webContents.openDevTools({ mode: 'detach' }) },
@@ -90,6 +128,8 @@ function createTray() {
   tray = new Tray(trayIcon());
   tray.setToolTip('Demolition Daddy pet');
   tray.setContextMenu(Menu.buildFromTemplate(menuTemplate()));
+  // Windows/Linux: a left click on the tray icon opens settings directly.
+  tray.on('click', () => process.platform !== 'darwin' && openSettings());
 }
 
 ipcMain.on('pet:drag', (_e, { dx, dy }) => {
@@ -99,6 +139,23 @@ ipcMain.on('pet:drag', (_e, { dx, dy }) => {
 });
 ipcMain.on('pet:menu', () => Menu.buildFromTemplate(menuTemplate()).popup({ window: win }));
 ipcMain.on('pet:send', (_e, msg) => recordAction(msg));
+ipcMain.on('pet:openSettings', openSettings);
+ipcMain.handle('settings:get', () => ({
+  settings: currentSettings,
+  groups: settings.GROUPS,
+  path: settings.settingsPath(),
+}));
+ipcMain.handle('settings:save', (_e, next) => {
+  const saved = settings.writeSettings(next);
+  applySettings(saved);
+  return saved;
+});
+ipcMain.handle('settings:reset', () => {
+  const saved = settings.writeSettings(settings.defaults());
+  applySettings(saved);
+  return saved;
+});
+ipcMain.on('settings:close', () => settingsWin && settingsWin.close());
 
 app.on('second-instance', () => win && win.showInactive());
 
@@ -107,6 +164,8 @@ app.whenReady().then(() => {
   if (process.platform === 'darwin' && app.dock) app.dock.hide();
   createWindow();
   createTray();
+  stopWatchingSettings = settings.watchSettings(applySettings);
+  if (process.argv.includes('--settings')) openSettings();
   stopWatching = [
     watchState((state) => {
       lastState = state;
@@ -120,4 +179,7 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => app.quit());
-app.on('before-quit', () => stopWatching.forEach((stop) => stop()));
+app.on('before-quit', () => {
+  stopWatching.forEach((stop) => stop());
+  if (stopWatchingSettings) stopWatchingSettings();
+});

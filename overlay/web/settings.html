@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'">
+  <title>Pet settings</title>
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <header class="titlebar">
+    <svg id="mini-pet" class="mini-pet" aria-hidden="true"></svg>
+    <h1 id="title">Pixel · settings</h1>
+    <button id="close" class="close" type="button" title="Close">×</button>
+  </header>
+  <form id="form" class="groups" autocomplete="off"></form>
+  <footer class="footer">
+    <span id="status" class="status">loading…</span>
+    <button id="reset" type="button" class="btn secondary">Defaults</button>
+    <button id="done" type="button" class="btn">Done</button>
+  </footer>
+  <script src="sprites.js"></script>
+  <script src="pixel.js"></script>
+  <script src="settings.js"></script>
+</body>
+</html>
