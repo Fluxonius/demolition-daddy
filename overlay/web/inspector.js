@@ -124,7 +124,8 @@
     const engText = eng.external ? 'engine: external runner' : eng.running ? `engine: running (pid ${eng.pid})` : `engine: stopped${eng.error ? ` · ${eng.error}` : ''}`;
     badge('engine', eng.running ? 'ok' : 'bad', engText + (s.clock ? ` · clock ${s.clock.hour}:00 (${s.clock.tz})` : ''));
     const ai = aiStatus(s.agentLog, eng);
-    badge('ai', ai.cls, ai.text);
+    $('ai').className = `ai-line ${ai.cls}`;
+    $('ai').textContent = ai.text;
     $('live').disabled = !s.sandbox;
     $('dir').textContent = `pet dir: ${s.dir}${s.sandbox ? `   (live: ${s.liveDir})` : ''}`;
 
@@ -139,13 +140,14 @@
 
     const st = s.state;
     const fresh = st && s.now - st.updatedAt < 120_000;
-    const mood = fresh ? st.mood : 'offline';
+    const starting = !fresh && eng.running;
+    const mood = fresh ? st.mood : starting ? 'starting engine…' : 'offline';
     $('mood').textContent = mood;
     root.PixelPet.renderPet($('big-pet'), fresh ? mood : 'egg');
     const load = fresh ? st.load : 0;
     $('load-bar').style.width = `${load}%`;
     $('load-bar').className = load >= 85 ? 'high' : load >= 60 ? 'mid' : '';
-    $('load').textContent = fresh ? `load ${load}/100 · ${st.onBreak ? 'on a break' : st.agentWorking ? 'agent working' : 'agent idle'}` : 'no fresh state.json';
+    $('load').textContent = fresh ? `load ${load}/100 · ${st.onBreak ? 'on a break' : st.agentWorking ? 'agent working' : 'agent idle'}` : starting ? 'waiting for the first state.json' : 'no fresh state.json';
     $('source').replaceChildren(el('span', 'dim', 'decided by '), fresh ? sourceTag(st.source) : el('span', 'dim', '—'));
     const lastDecision = [...s.agentLog].reverse().find((x) => x.why);
     $('why').textContent = lastDecision ? `why: ${lastDecision.why}` : '';
