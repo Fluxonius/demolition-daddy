@@ -1,8 +1,9 @@
 ---
-description: Repository language and ownership conventions
+description: Repository language, role and ownership conventions
 alwaysApply: true
 ---
 
 - Write everything in this repository in English: docs, code, comments, identifiers, UI strings, commit messages, PRs. Team chat is in Russian. Even when a request arrives in Russian, keep repository content in English.
-- Edit only the folder owned by your role (see `AGENTS.md`). `contract/` changes must be additive and go in a separate PR.
-- The design source of truth is `docs/foundation-spec.md`. New features get a spec in `docs/specs/`.
+- At the start of a session, ask the human which role you are on (`ui`, `hooks` or `pet`) unless the prompt already says so.
+- Edit only the paths that role owns (see the "Claim a role" table in `AGENTS.md`). For anything outside them, write a change note instead of editing. `contract/` changes must be additive and go in a separate `contract: …` PR.
+- The design source of truth is `docs/foundation-spec.md`. New features get a spec in `docs/specs/<role>-<feature>.md`.

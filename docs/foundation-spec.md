@@ -7,7 +7,11 @@ Audience: the three teammates and their coding agents. Every feature spec in [`d
 - A Tamagotchi-style pet that lives in Cursor's sidebar and gets tired *with* you while you work with AI coding agents. It recovers only when *you* rest. Pitch line: *"Other coding pets eat your tokens. Ours eats your breaks."*
 - Integration: **Cursor Hooks → local JSONL event log → VS Code extension (engine + sidebar webview + status bar).** Hooks are the only way to see agent activity; the extension is the only good place for UI and window-focus signals.
 - The pet never dies, never guilts, never blocks by default. The optional soft prompt-lock is opt-in and has an override.
-- Three owners, three folders: **A** `hooks/` + installer + `contract/`, **B** `engine/` (load model, replay, time-warp), **C** `extension/` (UI and pet). Everyone shares `contract/` and builds against fixtures, so nobody waits for anybody.
+- Three roles with stable IDs and non-overlapping folders (§5.2):
+  - **`ui`** (Design & UI): how everything looks.
+  - **`hooks`** (Cursor hooks & events): what we observe from Cursor.
+  - **`pet`** (Pet behavior & glue): what the pet feels and does, and the wiring between the other two. `pet` is the integrator: it stewards `contract/` and merges to `main`.
+- Everyone builds against fixtures in `contract/`, so nobody waits for anybody.
 
 ---
 
@@ -89,7 +93,7 @@ A small pet in the Cursor sidebar mirrors your cognitive load. Every prompt you 
 
 ## 3. User scenarios
 
-Each scenario states the trigger (what we observe) and the pet's reaction. Load and state names are defined in §4.5. Numbers are starting points that Role B tunes.
+Each scenario states the trigger (what we observe) and the pet's reaction. Load and state names are defined in §4.5. Numbers are starting points that role `pet` tunes.
 
 ### S1. First install
 - **Narrative:** Dana installs the `.vsix`. A paw icon appears in the Activity Bar.
@@ -182,13 +186,17 @@ Cursor agent ──hooks──▶ node hooks/pet-hook.js ──append──▶ $
                               │ (reads state.json only for optional soft lock)
                               ▼
 VS Code extension in Cursor (extension host)
-  ├─ engine (pure TS, no `vscode` import)      ◀── tails events.jsonl
+  ├─ engine (pure TS, no `vscode` import)      ◀── tails events.jsonl                  [pet]
   │    events → PetState (load, mood, reasons, nudge) ──▶ writes $PET_DIR/state.json
-  ├─ ext signals: window focus/blur, user typing, break/snooze/urgent buttons ──▶ engine.push()
-  ├─ sidebar webview: the pet (mood, animation, bubble, buttons)
-  ├─ status bar item: "🐱 72%"
-  └─ nudge dispatcher: picks a channel for engine-issued nudges (see §4.8)
+  ├─ glue: activation, state store, ext.* signals (focus/blur, typing),                [pet]
+  │        commands, nudge dispatcher (picks a channel, see §4.8)
+  │          │ ToWebview / FromWebview messages, NudgeChannel calls
+  │          ▼
+  ├─ ui: sidebar webview (pet, animations, bubble, buttons), status bar look,          [ui]
+  │      notification look, NudgeChannel renderers
 ```
+
+The `[role]` tags show who owns each part. Data flows one way: `hooks` produces events, `pet` turns them into state and decisions, and `ui` renders them. User clicks flow back from `ui` as `FromWebview` messages to `pet`.
 
 `PET_DIR` defaults to `~/.cursor-pet/` and can be overridden with the `CURSOR_PET_DIR` env variable. Replay and tests always use a temp directory.
 
@@ -196,14 +204,17 @@ VS Code extension in Cursor (extension host)
 
 | Component | Folder | Owner | Responsibility |
 |---|---|---|---|
-| Contract | `contract/` | A maintains, all review | TS types for events, state, messages, nudges. Fixtures |
-| Hook script | `hooks/pet-hook.js` | A | stdin JSON → one normalized `PetEvent` line. Optional lock decision. Always exit 0 |
-| Installer | `hooks/install.mjs` | A | Merge or remove our entries in `~/.cursor/hooks.json`; idempotent |
-| Dogfood config | `.cursor/hooks.json` | A | Project-level hooks for this repo |
-| Engine | `engine/src/` | B | Reducer and load score, tail of the log, nudge policy (timing, cooldown, escalation), `state.json` writer, clock injection |
-| Replay / time-warp | `engine/scripts/replay.mjs` | B | Play a fixture into a temp `PET_DIR` with compressed time |
-| Extension | `extension/` | C | Activation, webview, status bar, notifications, focus/typing signals, commands, install UX, `.vsix` |
-| Pet art and copy | `extension/media/`, `extension/webview/` | C | Sprites or emoji/CSS, animations, rotating lines |
+| Event contract | `contract/events.ts`, `contract/fixtures/*.jsonl` | `hooks` (authors), `pet` (approves) | `PetEvent` fields that hooks emit. Recorded and synthetic event logs |
+| State and UI contract | `contract/state.ts`, `contract/actions.ts`, `contract/fixtures/states.json` | `pet` (authors), `ui` (approves) | `PetState`, `Nudge`, `NudgeChannel`, webview messages. One state per mood |
+| Hook script | `hooks/pet-hook.js` | `hooks` | stdin JSON → one normalized `PetEvent` line. Local frustration flag. Hook side of the soft lock. Always exit 0 |
+| Installer | `hooks/install.mjs` | `hooks` | Merge or remove our entries in `~/.cursor/hooks.json`; idempotent. Exports a function that the glue calls for the Connect button |
+| Dogfood config | `.cursor/hooks.json` | `hooks` | Project-level hooks for this repo |
+| Engine | `engine/src/` | `pet` | Reducer and load score, tail of the log, nudge policy (when and what: timing, cooldown, escalation, override, exercise choice, pet lines), `state.json` writer, clock injection |
+| Replay / time-warp | `engine/scripts/replay.mjs` | `pet` | Play a fixture into a temp `PET_DIR` with compressed time |
+| Extension glue | `extension/package.json`, `extension/src/extension.ts`, `extension/src/glue/` | `pet` | Activation, manifest contributions (views, commands, settings), engine wiring, state store, `ext.*` signals, commands, nudge dispatcher, `.vsix` build |
+| Presentation | `extension/src/ui/`, `extension/webview/`, `extension/media/` | `ui` | Webview view provider and HTML/CSS/JS, sprites and animations per mood and per exercise, status bar look, notification look, `NudgeChannel` renderers |
+
+**Fatigue-fighting split.** `pet` decides **when** to intervene and **what** the intervention is: the nudge level, the exercise (20-20-20, cyclic sigh, stretch), the pet's line, the escalation and the override rules. `ui` decides **how it looks and feels**: the animation for each mood and exercise, the bubble and toast design, colors and motion. `hooks` decides **what we can observe**: which Cursor events exist, what each one means and which fields it carries. The meeting points are `Nudge` (`pet` → `ui`) and `PetEvent` (`hooks` → `pet`).
 
 ### 4.3 Event contract (`contract/events.ts`)
 One JSON object per line in `events.jsonl`. Version field `v` allows additive evolution.
@@ -263,7 +274,8 @@ export interface Nudge {
   level: NudgeLevel;
   moment: Moment;             // boundary at which it was raised
   kind: 'micro' | 'long' | 'stop-for-today';
-  text: string;               // English, rotated by the engine or UI
+  exercise?: 'eyes-20-20-20' | 'cyclic-sigh' | 'stretch' | 'walk';  // ui maps each to an animation
+  text: string;               // English line chosen and rotated by the engine (pet); ui only renders it
 }
 
 export interface PetState {
@@ -323,7 +335,7 @@ Breaks are pushed as events (`ext.breakStart`), not through a special method, so
 | Late hours | Local clock ≥ 22:00 | Circadian fatigue |
 | Self-calibration | `ext.calibrate` | Proxies are noisy; let the user correct |
 
-**Load score.** This is a starting formula owned by B. Coefficients are tuned so that ~90 min of dense work without a break reaches *tired*/*melting*.
+**Load score.** This is a starting formula owned by `pet`. Coefficients are tuned so that ~90 min of dense work without a break reaches *tired*/*melting*.
 - **Gain:**
   - prompt +4;
   - response +1 per 1000 chars (max +5 per response);
@@ -359,7 +371,7 @@ Breaks are pushed as events (`ext.breakStart`), not through a special method, so
 - **L2:** load ≥ 85, or 2 snoozes. Sleepy pet, status bar tint, a toast notification with buttons.
 - **L3:** soft prompt-lock. Only if enabled (§4.7).
 
-Timing rules (B implements, C respects):
+Timing rules (`pet` implements, `ui` renders whatever nudge is active):
 - Raise nudges only at a boundary `Moment`: agent working for > 30 s, right after `stop`, or before submit. Never while the user typed in the last 20 s (`ext.userTyping`).
 - At most one nudge per 10 min (cooldown per level). No nudges during `urgentUntil` or `onBreak`.
 - Rotate texts and exercises. Never show the same `id` twice in a row.
@@ -370,13 +382,13 @@ Timing rules (B implements, C respects):
 
 **Constraints, if we build it:**
 - **Off by default.** Enabled only by an explicit toggle (setting or onboarding choice).
-- **Hook side (A):**
+- **Hook side (`hooks`):**
   - The hook decides **instantly** from `state.json`: `lock.active && now − updatedAt < 120 s`. No waiting and no network.
   - Any error means `{"continue":true}`.
-- **Bypass (B):**
+- **Lock decision and bypass (`pet`):** the engine sets `lock` in `state.json`.
   - A prompt starting with `!urgent` always passes. It counts as an override and emits the `urgent` flag.
   - Limited to `bypassesLeft` per day (e.g., 3). After that the lock just doesn't engage that day; we never trap the user.
-- **Unlock:** a 60 s guided break in the pet panel, or 3 min unfocused.
+- **Unlock:** a 60 s guided break in the pet panel, or 3 min unfocused. `pet` defines it; `ui` designs the locked and unlock screens.
 - **Limits:** doesn't work in cloud agents or CLI `-p`. That's acceptable.
 
 **Options:**
@@ -384,10 +396,10 @@ Timing rules (B implements, C respects):
 - (b) Fake it in the demo with replay only.
 - (c) Skip it.
 
-Default if nobody decides: **(a) if Role A is on track at checkpoint 1, otherwise (c).**
+Default if nobody decides: **(a) if roles `hooks` and `pet` are on track at checkpoint 1, otherwise (c).**
 
 ### 4.8 Attention actions — EXTENSION POINT
-The engine decides **when** and **how hard** (a `Nudge`). The extension decides **how** through pluggable channels, so new actions can be added in separate feature specs without touching the engine.
+The engine (`pet`) decides **when**, **what** and **how hard** by producing a `Nudge`. The glue's dispatcher (`pet`) picks a channel. Channels are renderers implemented by `ui`, so they decide **how it looks**. New actions can be added in separate feature specs without touching the engine.
 
 ```ts
 // contract/actions.ts
@@ -397,6 +409,14 @@ export interface NudgeChannel {
   canShow(state: PetState): boolean;            // e.g. toast only if window focused
   show(nudge: Nudge, state: PetState): Promise<'accepted' | 'dismissed' | 'ignored'>;
 }
+
+// Seam between glue (pet) and presentation (ui). The extension.ts entry point (pet) calls
+// ui's activateUi() exported from extension/src/ui/index.ts.
+export interface UiBridge {
+  onState(cb: (s: PetState) => void): () => void;   // glue → ui
+  send(msg: FromWebview): void;                      // ui → glue (button clicks, nudge results)
+}
+export type ActivateUi = (ctx: unknown /* vscode.ExtensionContext */, bridge: UiBridge) => NudgeChannel[];
 ```
 
 Candidate actions from the research, roughly in priority order:
@@ -426,7 +446,7 @@ Do **not** use `stop.followup_message`. It auto-sends a prompt to the agent.
 - **Demo mode.** The extension exposes a "Pet: Demo mode (time-warp ×60)" command that points the engine at a temp `PET_DIR` and starts replay, so the real log stays clean.
 - **Fixtures** (in `contract/fixtures/`):
   - `session-calm.jsonl` and `session-overload.jsonl`: one synthetic and one recorded from real dogfooding;
-  - `states.json`: one `PetState` per mood, so C can build UI without the engine.
+  - `states.json`: one `PetState` per mood, plus one with an active nudge per exercise, so `ui` can build the whole UI without the engine.
 
 ### 4.10 Privacy and safety checklist
 - No prompt or response text on disk. Lengths and flags only. The frustration regex runs inside the hook.
@@ -442,49 +462,69 @@ Do **not** use `stop.followup_message`. It auto-sends a prompt to the agent.
 
 ```
 demolition-daddy/
-├─ AGENTS.md              all agents read this first (language, ownership)       lead: A
-├─ README.md              entry point, install + demo (filled at the end)        lead: A
+├─ AGENTS.md                     all agents read this first (language, roles)         pet
+├─ README.md                     entry point, install + demo (filled at the end)      pet
 ├─ .cursor/
-│  ├─ rules/repo-conventions.mdc                                                 A
-│  └─ hooks.json          dogfood hooks for this repo (created by A)             A
-├─ contract/              SHARED: events.ts, state.ts, actions.ts, fixtures/     A maintains, all approve
-├─ hooks/                 pet-hook.js, install.mjs                               A
-├─ engine/                src/, test/, scripts/replay.mjs (pure TS, no vscode)   B
-├─ extension/             package.json, src/, webview/, media/                   C
+│  ├─ rules/repo-conventions.mdc                                                      pet
+│  └─ hooks.json                 dogfood hooks for this repo                          hooks
+├─ contract/
+│  ├─ events.ts                  PetEvent                                             hooks (pet approves)
+│  ├─ state.ts, actions.ts       PetState, Nudge, NudgeChannel, UiBridge, messages    pet (ui approves)
+│  └─ fixtures/
+│     ├─ *.jsonl                 event logs (synthetic + recorded)                    hooks
+│     └─ states.json             one state per mood and per exercise                  pet
+├─ hooks/                        pet-hook.js, install.mjs                             hooks
+├─ engine/                       src/, test/, scripts/replay.mjs (no vscode import)   pet
+├─ extension/
+│  ├─ package.json, esbuild.mjs, tsconfig.json                                        pet
+│  ├─ src/extension.ts           activate(): wires engine, glue and ui                pet
+│  ├─ src/glue/                  state store, ext.* signals, commands, dispatcher     pet
+│  ├─ src/ui/                    webview provider, status bar + toast renderers       ui
+│  ├─ webview/                   pet HTML/CSS/JS, animations                          ui
+│  └─ media/                     sprites, icons                                       ui
 └─ docs/
-   ├─ foundation-spec.md  this document                                          all, via PR
-   └─ specs/              feature specs, one file per feature                    author of the spec
+   ├─ foundation-spec.md         this document                                        pet stewards, all via PR
+   └─ specs/                     feature specs, one file per feature                  author of the spec
 ```
 
 Conflict rules:
-- **Edit only your own folder.** Touching another folder needs a heads-up in chat and a review from its owner.
-- **No root `package.json` and no shared lockfile.** Each of `engine/` and `extension/` has its own. `hooks/` has zero dependencies (plain Node ≥ 18).
-- **`extension/` bundles `../engine/src` and `../contract`** with esbuild, so there's no npm linking.
-- **`contract/` changes are additive only,** in a separate PR titled `contract: …`, announced in chat. The first contract PR (copying §4.3, §4.4, §4.8 into `.ts` files and adding the fixtures) is Role A's first task.
+- **Edit only your role's paths.** For anything else, write a change note (see AGENTS.md "Claim a role") and let the owner make the change.
+- **`extension/package.json` belongs to `pet`.** `ui` needs view, icon and color contributions in it, so `pet` creates them in the skeleton (view container `demolitionDaddy`, view `demolitionDaddy.pet`). `ui` asks `pet` for further changes.
+- **No root `package.json` and no shared lockfile.** `engine/` and `extension/` each have their own. `hooks/` has zero dependencies (plain Node ≥ 18).
+- **`extension/` bundles `../engine/src`, `../contract` and `../hooks/install.mjs`** with esbuild, so there's no npm linking.
+- **`contract/` changes are additive only,** in a separate PR titled `contract: …`, announced in chat. It needs approval from `pet` plus the consuming role.
+
+**Integrator: `pet`.** `pet` stewards `contract/` and merges cross-folder PRs. Reasons:
+- `pet` sits in the middle of the data flow. It consumes `hooks`' events and produces `ui`'s state, so it's the only role that touches both contracts.
+- Integration bugs show up in the glue, and the end-to-end smoke test runs through it.
+- `hooks` has an open-ended research load (real payloads, platform quirks), and `ui` has the art load. Making either of them the merger would slow the critical path.
+
+To keep `pet` from becoming a bottleneck, every author still self-merges PRs that touch only their own paths, once tests and the smoke check pass.
 
 ### 5.2 Roles
+Claim a role by its ID: "I'm taking role `hooks`". Branch prefixes, commit areas and spec areas use the same IDs.
 
-| Role | Owns | Checkpoint 1 deliverable | Freeze deliverable |
-|---|---|---|---|
-| **A — Hooks, installer, contract** (lead, merges PRs) | `hooks/`, `.cursor/`, `contract/`, `AGENTS.md`, `README.md` | Contract `.ts` files and fixtures on `main`. Real Cursor events land in `events.jsonl`. One real fixture recorded | Idempotent installer and uninstaller, `preCompact` message, soft-lock hook side (if chosen), end-to-end smoke test after each merge, README install and demo |
-| **B — Load engine, replay, time-warp** | `engine/` | Reducer and score pass `node --test` on fixtures. Log tail. `createPetEngine` | Reasons, nudge policy (boundaries, cooldown, ladder, urgent), `speed`, `replay.mjs`, `state.json` writer, lock decision |
-| **C — Extension UI and pet** | `extension/` | Extension runs in Cursor (F5). Sidebar pet switches all moods from `contract/fixtures/states.json` | Real engine wired in. Status bar, bubble and toast channels, focus/typing `ext.*` events, guided break, connect UX, demo-mode command, `.vsix` |
+| Role ID | Name | Owns | First tasks (T0 → checkpoint 1) | Freeze deliverable | Interfaces with |
+|---|---|---|---|---|---|
+| **`ui`** | Design & UI | `extension/src/ui/`, `extension/webview/`, `extension/media/` | Pick the pet's name and art style. Build the sidebar pet as a standalone page first (open `webview/index.html` in a browser, switch through `states.json`). Draw all 7 moods and the 4 exercise animations. Design the bubble, status bar and toast | `activateUi()` with the webview provider and `NudgeChannel` renderers for bubble, toast and status bar. Guided-break screens, locked screen, Connect screen, loot reveal | `pet`, through `ToWebview`/`FromWebview`, `UiBridge`, `NudgeChannel`, `Mood` and `exercise` IDs |
+| **`hooks`** | Cursor hooks & events | `hooks/`, `.cursor/hooks.json`, `contract/events.ts`, `contract/fixtures/*.jsonl` | Write `contract/events.ts` from §4.3. Implement `pet-hook.js` and `.cursor/hooks.json`. Verify real payload fields in Cursor for each hook. Record one real session as a fixture and write one synthetic overload fixture | Idempotent installer and uninstaller exported as a function. Frustration flag. `preCompact` message. Hook side of the soft lock (if chosen). A doc of which hook means what (`docs/specs/hooks-event-map.md`) | `pet`, through `events.jsonl` (`PetEvent`), `state.json` (lock), and the `install()`/`uninstall()` API |
+| **`pet`** | Pet behavior & glue (integrator) | `engine/`, `extension/package.json`, `extension/src/extension.ts`, `extension/src/glue/`, `contract/state.ts`, `contract/actions.ts`, `contract/fixtures/states.json`, `AGENTS.md`, `README.md`, `.cursor/rules/` | Write `contract/state.ts` and `actions.ts` from §4.4 and §4.8, plus `states.json`; push them first, since `ui` needs them. Create the extension skeleton (manifest, `activate`, an empty view) so `ui` can press F5. Engine reducer and load score passing `node --test` on fixtures | Nudge policy (boundaries, cooldown, ladder, override, exercise rotation, pet lines), `speed` time-warp, `replay.mjs`, `state.json` writer, lock decision, `ext.*` signals, dispatcher, demo-mode command, `.vsix`. End-to-end smoke test after each merge | `hooks` (events in, lock out) and `ui` (state out, clicks in) |
 
-Fixtures decouple everyone: B builds on event fixtures, C on state fixtures, and A produces real data.
+Fixtures decouple everyone: `pet` builds the engine on event fixtures, `ui` builds the UI on state fixtures, and `hooks` produces real data.
 
 ### 5.3 Branches and PRs
-- **Branches:** `a/<topic>`, `b/<topic>`, `c/<topic>` (e.g., `b/load-score`). Parallel agents of the same person use separate git worktrees.
+- **Branches:** `ui/<topic>`, `hooks/<topic>`, `pet/<topic>` (e.g., `pet/load-score`). Parallel agents of the same person use separate git worktrees.
 - **Small PRs into `main` every 30–40 min.** Run `git pull --rebase origin main` before opening a PR.
-- **Merging:** the author may merge their own PR if it only touches their folder and tests or the smoke check pass. Otherwise A merges.
-- **Commit messages:** `<area>: <imperative summary>`, in English, where area is `contract`, `hooks`, `engine`, `extension` or `docs`. Example: `engine: add break decay`.
-- **Agent prompts** start with: "You are role B. Edit only `engine/`. Read `contract/` and `docs/` but don't modify them." Attach `@contract` and `@docs/foundation-spec.md`.
+- **Merging:** the author may merge their own PR if it only touches their own paths and tests or the smoke check pass. `pet` merges contract and cross-folder PRs.
+- **Commit messages:** `<area>: <imperative summary>`, in English. Areas: `ui`, `hooks`, `pet` (engine or glue), `contract`, `docs`. Example: `pet: add break decay`.
+- **Agent prompts** start with: "You are role `pet`. Edit only the paths owned by `pet` in AGENTS.md. Read everything else, but don't modify it." Attach `@AGENTS.md`, `@contract` and `@docs/foundation-spec.md`.
 
 ### 5.4 Timeline
 About 2 hours remain after this document lands. T0 is the moment everyone has pulled `main`.
 
 | Time | What |
 |---|---|
-| T0 → T+0:10 | Everyone reads this spec. A opens the `contract:` PR (§4.3, §4.4, §4.8, fixtures). Agree on pet name, style (emoji/CSS or pixel art) and 3 nudge lines |
+| T0 → T+0:10 | Everyone claims a role and reads this spec. `hooks` pushes `contract/events.ts`. `pet` pushes `contract/state.ts`, `actions.ts`, `states.json` and the extension skeleton. `ui` proposes the pet's name and style (emoji/CSS or pixel art); `pet` drafts 3 nudge lines |
 | T+0:10 → T+0:50 | Sprint 1, in parallel |
 | **T+0:50** | **Checkpoint 1** (5 min, voice): checkpoint 1 deliverables done? **Decide the soft lock (§4.7)** |
 | T+0:55 → T+1:10 | Integration 1: a real prompt in Cursor makes the pet react |
@@ -507,20 +547,21 @@ About 2 hours remain after this document lands. T0 is the moment everyone has pu
 
 | # | Question | Owner | Default if undecided |
 |---|---|---|---|
-| Q1 | Build the soft prompt-lock? (§4.7) | all, at checkpoint 1 | (a) if A is on track, else (c) |
-| Q2 | Pet name and art style | C | Emoji + CSS; name "Pixel" |
-| Q3 | Multiple Cursor windows: each runs an engine. Who writes `state.json`, and when is it "no window focused"? | B + C | Every window's engine reads the same log, so they agree; last writer of `state.json` wins. Focus events carry `data.window`. "No Cursor window focused" means the latest focus event of every known window is a blur |
-| Q4 | Exact load coefficients and thresholds | B | §4.5 values; tune with real fixtures |
-| Q5 | Does the extension auto-install global hooks, or does the project `.cursor/hooks.json` suffice for the demo? | A + C | Demo: project hooks. Connect button if time allows |
-| Q6 | Frustration regex: which words, and which languages (EN + RU)? | A | Small EN + RU list; flag only |
-| Q7 | Loot/adventure: in MVP or not? | C | One hat after a ≥ 60 s break, if time allows |
-| Q8 | `ext.userTyping` noise: how to separate agent edits from user typing | C + B | Treat edits within 2 s after `afterFileEdit` as agent edits |
-| Q9 | Packaging after the hackathon: Cursor plugin (hooks + MCP) plus extension? | all | Post-hackathon |
+| Q1 | Build the soft prompt-lock? (§4.7) | all, at checkpoint 1 | (a) if `hooks` and `pet` are on track, else (c) |
+| Q2 | Pet name and art style | `ui` | Emoji + CSS; name "Pixel" |
+| Q3 | Multiple Cursor windows: each runs an engine. Who writes `state.json`, and when is it "no window focused"? | `pet` | Every window's engine reads the same log, so they agree; last writer of `state.json` wins. Focus events carry `data.window`. "No Cursor window focused" means the latest focus event of every known window is a blur |
+| Q4 | Exact load coefficients and thresholds | `pet` | §4.5 values; tune with real fixtures |
+| Q5 | Does the extension auto-install global hooks, or does the project `.cursor/hooks.json` suffice for the demo? | `hooks` + `pet` | Demo: project hooks. Connect button if time allows |
+| Q6 | Frustration regex: which words, and which languages (EN + RU)? | `hooks` | Small EN + RU list; flag only |
+| Q7 | Loot/adventure: in MVP or not? | `pet` decides, `ui` draws | One hat after a ≥ 60 s break, if time allows |
+| Q8 | `ext.userTyping` noise: how to separate agent edits from user typing | `pet` | Treat edits within 2 s after `afterFileEdit` as agent edits |
+| Q9 | Can hooks give token usage or model cost per turn? (would be a better load signal than char counts) | `hooks` | Use `chars` until verified |
+| Q10 | Packaging after the hackathon: Cursor plugin (hooks + MCP) plus extension? | all | Post-hackathon |
 
 ---
 
 ## 7. Feature specs
-- **Location:** `docs/specs/<area>-<feature>.md`, where area is `hooks`, `engine`, `extension`, `contract` or `cross`. Examples: `engine-nudge-policy.md`, `extension-guided-break.md`.
+- **Location:** `docs/specs/<area>-<feature>.md`, where area is a role ID (`ui`, `hooks`, `pet`), `contract` or `cross`. Examples: `pet-nudge-policy.md`, `ui-guided-break.md`, `hooks-event-map.md`.
 - **Template:** copy [`docs/specs/TEMPLATE.md`](specs/TEMPLATE.md). Keep a spec to 1–2 screens. Link the sections of this foundation spec it builds on.
 - **Process:** open a spec as a short PR (or include it in your first feature PR) before larger work.
 - **Conflicts:** if a spec contradicts this document, update this document in the same PR and tell the team.
