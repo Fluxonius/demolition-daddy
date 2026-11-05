@@ -50,7 +50,6 @@
     const sprite = doc.createElementNS(NS, 'g');
     sprite.setAttribute('class', 'sprite');
     let body = grid(doc, s.BODY, s.BODY_ORIGIN, s.PALETTE, 'body');
-    let tail = grid(doc, s.TAIL, s.TAIL_ORIGIN, s.PALETTE, 'tail');
     const eyes = doc.createElementNS(NS, 'g');
     eyes.setAttribute('class', 'eyes');
     let faceG = grid(doc, face, faceOrigin, s.PALETTE, 'face');
@@ -61,7 +60,7 @@
       eyes.appendChild(blink);
     }
     let extra = doc.createElementNS(NS, 'g');
-    sprite.append(tail, body, eyes, extra);
+    sprite.append(body, eyes, extra);
     for (const name of opts.overlays || []) {
       const o = s.OVERLAYS[name];
       if (o) sprite.appendChild(grid(doc, o.grid, o.origin, s.PALETTE, `overlay overlay-${name}`));
@@ -78,7 +77,6 @@
       setFrame(f) {
         f = f || {};
         if (f.body !== shown.body) body = swap(body, grid(doc, f.body || s.BODY, s.BODY_ORIGIN, s.PALETTE, 'body'));
-        if (f.tail !== shown.tail) tail = swap(tail, grid(doc, f.tail || s.TAIL, s.TAIL_ORIGIN, s.PALETTE, 'tail'));
         if (f.face !== shown.face) faceG = swap(faceG, grid(doc, f.face || face, faceOrigin, s.PALETTE, 'face'));
         if (f.extra !== shown.extra) {
           const g = doc.createElementNS(NS, 'g');
