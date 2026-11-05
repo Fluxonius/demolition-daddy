@@ -54,27 +54,74 @@ body.browser #root { justify-content: center; }
   text-overflow: ellipsis;
 }
 
-/* ---- Nudge bubble ---- */
+/* ---- Speech bubble (messages, nudges, lock) ----
+   Pixel style to match the pet: no radius, no blur. The 3px border is four box-shadows, which leaves
+   notched corners; the tail is two stacked blocks drawn the same way. */
 .bubble {
-  background: var(--bubble);
-  color: var(--ink);
-  border-radius: 12px;
-  padding: 8px 10px;
-  margin-bottom: 4px;
-  max-width: 190px;
-  font-size: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, .3);
+  --px: 3px;
+  --line: #111;
+  position: relative;
+  background: #fff;
+  color: #111;
+  margin: 0 var(--px) calc(var(--px) * 4);
+  padding: 6px 8px;
+  max-width: 184px;
+  font: 700 11px/1.35 ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  box-shadow:
+    0 calc(-1 * var(--px)) 0 0 var(--line),
+    0 var(--px) 0 0 var(--line),
+    calc(-1 * var(--px)) 0 0 0 var(--line),
+    var(--px) 0 0 0 var(--line),
+    0 calc(var(--px) * 2) 0 0 rgba(0, 0, 0, .35);
+  -webkit-font-smoothing: none;
 }
-.bubble[hidden], .bubble-actions[hidden] { display: none; }
-.bubble p { margin: 0 0 6px; }
-.bubble-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.bubble.dismissible { cursor: pointer; }
+.bubble::before, .bubble::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  background: #fff;
+}
+.bubble::before {
+  width: calc(var(--px) * 3);
+  height: var(--px);
+  bottom: calc(var(--px) * -2);
+  margin-left: calc(var(--px) * -1.5);
+  box-shadow: calc(-1 * var(--px)) 0 0 0 var(--line), var(--px) 0 0 0 var(--line);
+}
+.bubble::after {
+  width: var(--px);
+  height: var(--px);
+  bottom: calc(var(--px) * -3);
+  margin-left: calc(var(--px) * -.5);
+  box-shadow: calc(-1 * var(--px)) 0 0 0 var(--line), var(--px) 0 0 0 var(--line), 0 var(--px) 0 0 var(--line);
+}
+.bubble.from-lock { background: #fff3c4; }
+.bubble.from-lock::before, .bubble.from-lock::after { background: #fff3c4; }
+.bubble[hidden], .bubble-buttons[hidden], .bubble-more[hidden] { display: none; }
+.bubble p { margin: 0; overflow-wrap: anywhere; }
+.bubble-buttons { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; margin-top: 6px; }
 .bubble button {
+  font: inherit;
+  font-size: 10px;
+  padding: 2px 6px;
   border: 0;
-  border-radius: 6px;
-  padding: 3px 8px;
-  font-size: 11px;
-  background: var(--accent);
-  color: #fff;
+  border-radius: 0;
+  background: #fff;
+  color: #111;
   cursor: pointer;
+  box-shadow: 0 -2px 0 0 #111, 0 2px 0 0 #111, -2px 0 0 0 #111, 2px 0 0 0 #111, 2px 4px 0 0 #111;
+  margin: 2px 2px 4px;
 }
-.bubble button.secondary { background: #ddd; color: var(--ink); }
+.bubble button:first-child { background: #111; color: #fff; }
+.bubble button:hover { background: #ffd23f; color: #111; }
+.bubble button:active { transform: translate(2px, 2px); box-shadow: 0 -2px 0 0 #111, 0 2px 0 0 #111, -2px 0 0 0 #111, 2px 0 0 0 #111; }
+.bubble-more {
+  position: absolute;
+  top: calc(var(--px) * -3);
+  right: calc(var(--px) * -3);
+  background: #e04848;
+  color: #fff;
+  font-size: 9px;
+  padding: 0 3px;
+}

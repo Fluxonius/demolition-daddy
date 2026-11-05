@@ -1,17 +1,18 @@
 'use strict';
 const path = require('node:path');
 const { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage, screen } = require('electron');
-const { petDir, watchState } = require('./lib/pet-dir');
+const { petDir, watchState, watchMessages } = require('./lib/pet-dir');
 const { recordAction } = require('./lib/actions');
 
 const WIDTH = 220;
-const HEIGHT = 260;
+const HEIGHT = 300;
 const MARGIN = 16;
 
 let win;
 let tray;
-let stopWatching;
+let stopWatching = [];
 let lastState = null;
+let lastMessages = null;
 
 if (!app.requestSingleInstanceLock()) app.quit();
 
@@ -49,7 +50,10 @@ function createWindow() {
     win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   }
   win.loadFile(path.join(__dirname, 'web', 'index.html'));
-  win.webContents.on('did-finish-load', () => win.webContents.send('pet:state', lastState));
+  win.webContents.on('did-finish-load', () => {
+    win.webContents.send('pet:state', lastState);
+    win.webContents.send('pet:messages', lastMessages);
+  });
   win.on('closed', () => (win = null));
 }
 
@@ -103,11 +107,17 @@ app.whenReady().then(() => {
   if (process.platform === 'darwin' && app.dock) app.dock.hide();
   createWindow();
   createTray();
-  stopWatching = watchState((state) => {
-    lastState = state;
-    if (win) win.webContents.send('pet:state', state);
-  });
+  stopWatching = [
+    watchState((state) => {
+      lastState = state;
+      if (win) win.webContents.send('pet:state', state);
+    }),
+    watchMessages((messages) => {
+      lastMessages = messages;
+      if (win) win.webContents.send('pet:messages', messages);
+    }),
+  ];
 });
 
 app.on('window-all-closed', () => app.quit());
-app.on('before-quit', () => stopWatching && stopWatching());
+app.on('before-quit', () => stopWatching.forEach((stop) => stop()));

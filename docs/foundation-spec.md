@@ -270,6 +270,7 @@ The overlay renders only what is in this file, so it is the hard interface betwe
 - **Fields the overlay uses today:** `updatedAt`, `mood` (unknown values render as `egg`), `load` (0–100), `reasons[0]`, `nudge` (shown as a bubble when `level >= 1`, using `nudge.text` verbatim and `nudge.id` for replies). Other fields are passed through and may be used later; additive changes only.
 - **Replies:** the overlay never writes `state.json`. It appends `ext.*` events to `events.jsonl` (§4.3).
 - **Dev without the engine:** `cd overlay && npm run fake` writes a valid file that cycles through every mood and two nudges.
+- **Proposed (not in `contract/` yet): bubble messages.** A sibling `messages.json` (`{ v, updatedAt, messages: [{ id, text, buttons?, priority?, ttlMs?, createdAt?, mood?, exercise? }] }`) lets `pet`'s AI layer say anything through the speech bubble; answers go to `actions.jsonl` as `{ v, ts, src: 'overlay', messageId, action }`. Schema and queue rules: [overlay/README.md "Messages"](../overlay/README.md#messages-speech-bubble).
 
 ### 4.5 Pet state model
 

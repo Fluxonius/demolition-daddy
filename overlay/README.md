@@ -7,7 +7,7 @@ The pet is a plain web page (`web/`: HTML + pixel-art SVG + CSS) that renders `P
 | Host | Command | How it gets state | Where you see it |
 |---|---|---|---|
 | Electron overlay (main) | `npm start` | Main process watches `state.json` (`fs.watch` on the dir + 1 s poll) and pushes it over IPC | Transparent, frameless, always-on-top window, bottom-right of the screen |
-| Localhost fallback | `npm run serve` | Page polls `GET /state.json` every second | Any browser, including Cursor's built-in Browser tab |
+| Localhost fallback | `npm run serve` | Page polls `GET /state.json` and `GET /messages.json` every second | Any browser, including Cursor's built-in Browser tab |
 
 ## Run
 
@@ -16,9 +16,9 @@ cd overlay
 npm install          # Electron only; the binary downloads on the first `npm start`
 npm run demo         # pet + fake engine together, in a scratch state dir (quitting the pet stops both)
 npm start            # floating pet
-npm run fake         # in another terminal: writes a fake state.json, cycling all moods every 4 s
+npm run fake         # in another terminal: fake state.json (all states, every 4 s) + sample messages.json
 npm run serve        # fallback: http://127.0.0.1:4517/ (PORT and HOST env override)
-npm test             # node --test: watcher, action mapping, sprite grid checks
+npm test             # node --test: watcher, actions, sprite grids, every state, message queue
 npm run preview -- out.html   # standalone all-moods preview (one self-contained HTML file)
 ```
 
@@ -79,6 +79,50 @@ The overlay already handles these fields if the engine writes them; nothing brea
 - Keep `nudge.exercise` set while `onBreak` during a guided break, so the exercise face shows even after a restart.
 - No change needed for: `agentWorking` (watching), `stats.parallelConvs` (juggling), `urgentUntil` (urgent), `lock` (locked), `onBreak` (resting / welcome back).
 
+## Messages (speech bubble)
+The bubble is a generic message channel: the `pet` role's AI layer writes `$CURSOR_PET_DIR/messages.json`, the overlay shows the best message, and every answer is appended to `$CURSOR_PET_DIR/actions.jsonl`. A sibling file (not a `state.json` field) keeps the AI layer and the load engine from overwriting each other, and lets messages show even while the engine is offline. Code: `bubbleQueue()` in `web/display.js`; samples: `MESSAGES` in `web/states.js` (`npm run fake` sends one every 3 steps and drops answered ones).
+
+### Contract proposal for `pet`: `messages.json` and `actions.jsonl` (not implemented in `contract/`)
+Write `messages.json` atomically (temp file + rename), like `state.json`. The whole file is the current queue: to retract a message, write the file without it.
+
+```jsonc
+// $CURSOR_PET_DIR/messages.json
+{
+  "v": 1,
+  "updatedAt": 1793905776058,
+  "messages": [
+    {
+      "id": "touch-grass-1793905775057",   // required, unique; [A-Za-z0-9_.:@/-]{1,200}
+      "text": "Time to go touch grass. 5 minutes outside?", // required, max 140 chars shown
+      "buttons": [                           // optional, max 3; label max 24 chars
+        { "label": "Going!",  "action": "touch-grass.accept" },
+        { "label": "Not now", "action": "touch-grass.later" }
+      ],
+      "priority": 20,         // optional, default 0; higher shows first, ties: oldest createdAt first
+      "ttlMs": 45000,         // optional, default 30000; 0 = until answered
+      "createdAt": 1793905775057, // optional; ttl counts from here, else from when the bubble first appears
+      "mood": "tired",        // optional face to pair with: any key of FACES in web/sprites.js
+      "exercise": "stretch",  // optional, wins over mood: eyes-20-20-20 | cyclic-sigh | stretch | walk
+      "dismissible": true     // optional, default true; clicking the bubble body dismisses it
+    }
+  ]
+}
+```
+
+```jsonc
+// $CURSOR_PET_DIR/actions.jsonl, one line per answer
+{"v":1,"ts":1793905776573,"src":"overlay","messageId":"touch-grass-1793905775057","action":"touch-grass.later"}
+// action is the button's action id, or "dismiss" (bubble body clicked) or "expire" (ttl ran out on screen)
+```
+
+Rules the overlay applies:
+- **One bubble at a time.** Candidates are sorted by priority. The soft lock always wins; an L*n* nudge counts as priority `10 × n` with buttons `accept`/`snooze` (still reported as `ext.breakStart`/`ext.snooze` in `events.jsonl`); "Welcome back!" is priority 5. A red `+N` badge shows how many are waiting.
+- **Replace** = write a message with a higher priority. Same id with new text updates the bubble in place. Once a message is answered, dismissed or expired, the overlay hides that id until restart, so send a new id to ask again.
+- **Urgent mode** mutes messages below priority 50 (and nudges).
+- **Pairing:** while a message is on screen, its `exercise` or `mood` replaces the face (below hatching and an accepted exercise).
+- Invalid messages and buttons are skipped silently. Text only; no HTML or markdown.
+- Per the hard rules, `actions.jsonl` holds ids only, never message text.
+
 ## Controls (Electron)
 - **Drag** the pet to move the window. **Click** the pet to pet it.
 - **Right-click** the pet, or use the tray/menu-bar icon: show/hide, move back to bottom-right, DevTools, **Quit**.
@@ -87,17 +131,17 @@ The overlay already handles these fields if the engine writes them; nothing brea
 ## Files
 | Path | What |
 |---|---|
-| `main.js` | Electron main: window, tray, `state.json` watcher, IPC (drag, menu, actions) |
-| `preload.js` | Exposes `window.petHost` (`onState`, `send`, `dragBy`, `showMenu`) to the page |
+| `main.js` | Electron main: window, tray, `state.json` + `messages.json` watchers, IPC (drag, menu, actions) |
+| `preload.js` | Exposes `window.petHost` (`onState`, `onMessages`, `send`, `dragBy`, `showMenu`) to the page |
 | `web/` | The pet page. Mood = class `mood-<mood>` on `#root`; `offline` when state is missing or older than 2 min |
 | `web/sprites.js` | **Pixel art, edit by hand.** Palette, body grid, one face grid per mood, blink frame, sleep "z" |
 | `web/pixel.js`, `web/pixel.css` | Renders grids to crisp SVG `<rect>`s; idle bob and "z" float animations |
-| `web/display.js` | `displayState(state, ui)`: PetState → face, exercise, accessories, bubble |
-| `web/states.js` | One example state per use case (fake writer, preview and tests use it) |
+| `web/display.js` | `displayState(state, ui)`: PetState + messages → face, exercise, accessories, bubble queue |
+| `web/states.js` | One example state per use case, plus sample messages (fake writer, preview and tests use it) |
 | `web/preview.html` | Every state side by side (`?still`, `?dark`) |
-| `serve.mjs` | Zero-dependency HTTP server for the fallback: static `web/`, `GET /state.json`, `POST /action` |
-| `lib/pet-dir.js` | `CURSOR_PET_DIR` resolution, `readState()`, `watchState()` |
-| `lib/actions.js` | Maps `FromWebview` messages to `ext.*` `PetEvent`s and appends them to `events.jsonl` |
+| `serve.mjs` | Zero-dependency HTTP server for the fallback: static `web/`, `GET /state.json`, `GET /messages.json`, `POST /action` |
+| `lib/pet-dir.js` | `CURSOR_PET_DIR` resolution, `readState()`, `watchState()`, `watchMessages()` |
+| `lib/actions.js` | Maps `FromWebview` messages to `ext.*` `PetEvent`s in `events.jsonl`; message answers to `actions.jsonl` |
 | `scripts/fake-state.mjs` | Fake engine for UI work and demos |
 
 ## Button clicks
@@ -110,3 +154,4 @@ With no extension host, the overlay appends user actions straight to `events.jso
 | `action: urgent` | `ext.urgentStart` (`minutes: 30`) |
 | `action: pet` / `feed` | `ext.petInteraction` |
 | `action: calibrateFine` / `calibrateDrained` | `ext.calibrate` |
+| `messageAction` (`id`, `action`) | not an event: one line in `actions.jsonl` (see Messages) |
