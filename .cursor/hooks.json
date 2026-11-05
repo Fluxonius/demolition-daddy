@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeSubmitPrompt": [{ "command": "node hooks/pet-hook.js beforeSubmitPrompt" }],
+    "afterAgentResponse": [{ "command": "node hooks/pet-hook.js afterAgentResponse" }],
+    "afterAgentThought": [{ "command": "node hooks/pet-hook.js afterAgentThought" }],
+    "stop": [{ "command": "node hooks/pet-hook.js stop" }],
+    "afterFileEdit": [{ "command": "node hooks/pet-hook.js afterFileEdit" }],
+    "afterTabFileEdit": [{ "command": "node hooks/pet-hook.js afterTabFileEdit" }],
+    "postToolUse": [{ "command": "node hooks/pet-hook.js postToolUse" }],
+    "postToolUseFailure": [{ "command": "node hooks/pet-hook.js postToolUseFailure" }],
+    "afterShellExecution": [{ "command": "node hooks/pet-hook.js afterShellExecution" }],
+    "sessionStart": [{ "command": "node hooks/pet-hook.js sessionStart" }],
+    "sessionEnd": [{ "command": "node hooks/pet-hook.js sessionEnd" }],
+    "subagentStart": [{ "command": "node hooks/pet-hook.js subagentStart" }],
+    "subagentStop": [{ "command": "node hooks/pet-hook.js subagentStop" }],
+    "preCompact": [{ "command": "node hooks/pet-hook.js preCompact" }]
+  }
+}
