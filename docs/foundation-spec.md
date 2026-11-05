@@ -93,87 +93,7 @@ A small pet in the Cursor sidebar mirrors your cognitive load. Every prompt you 
 
 ## 3. User scenarios
 
-Each scenario states the trigger (what we observe) and the pet's reaction. Load and state names are defined in §4.5. Numbers are starting points that role `pet` tunes.
-
-### S1. First install
-- **Narrative:** Dana installs the `.vsix`. A paw icon appears in the Activity Bar.
-- **Trigger:** first extension activation, and no hook entries found in `~/.cursor/hooks.json`.
-- **Pet:** sleeps in an egg. A bubble says "Connect me to your agent so I can keep you company", with a **Connect** button. After Connect the extension merges the hooks and asks for "Reload Window, then start a new chat". On the first hook event the pet hatches: *happy*, load 0.
-
-### S2. Calm start
-- **Narrative:** Dana sends a few prompts in the morning and reads answers.
-- **Trigger:** `beforeSubmitPrompt`, `afterAgentResponse` and `stop` at a low rate.
-- **Pet:** *happy*. It bounces when the agent answers and pretends to read along. No nudges.
-
-### S3. Long focused session
-- **Narrative:** 50 minutes of prompt → read → prompt, no break.
-- **Trigger:**
-  - `sinceBreakMs` grows.
-  - Prompts, read characters and edited files accumulate.
-  - Load crosses 30, then 60.
-- **Pet:**
-  - Load 30–60: *focused*, quiet. Don't disturb the flow.
-  - At 60+: *tired*, yawning and rubbing its eyes (L0, mood only).
-  - At the next boundary (after `stop`): a level L1 bubble, "Eyes need 20 seconds?", with **Let's go** and **Later** buttons.
-
-### S4. Waiting on the agent (micro-break window)
-- **Narrative:** Dana sends a big refactor prompt. The agent will think for a minute or more.
-- **Trigger:** `beforeSubmitPrompt` with no matching `stop` (same `gen`) after 30 s, and load ≥ 30.
-- **Pet:** "The agent is busy — look out the window with me for 20 seconds." It starts a 20-20-20 animation. Nothing is taken from the user, since this time was idle anyway. If the agent stops mid-exercise, the pet finishes quietly and doesn't scold.
-
-### S5. Parallel agents
-- **Narrative:** Dana runs three chats at once and jumps between them.
-- **Trigger:** `parallelConvs` (distinct `conv` IDs active in the last 10 min) is 2 or more. `subagentStart` events also count.
-- **Pet:** load gain is multiplied (×1.2 per extra conversation, capped). It visually juggles balls, one per active chat. The `reasons` list shows "3 agents at once".
-
-### S6. Frustration loop
-- **Narrative:** The agent keeps breaking things. Dana types "fix it", "still broken", "WTF".
-- **Trigger:**
-  - The hook flags the prompt as `frustrated` using a local regex. Only the flag is stored, never the text.
-  - Short repeated prompts.
-  - `stop` with status `aborted` or `error`.
-- **Pet:** sweat drops. A line like "That's the 5th 'fix it'. Maybe the agent is tired? So are you." Extra load per event.
-
-### S7. Late night
-- **Narrative:** It's 23:40 and Dana is still going.
-- **Trigger:** local hour ≥ 22 adds a constant drain, and the total day length grows.
-- **Pet:** a night-cap and a dim palette. Nudges suggest a *long* break or stopping for the day rather than micro-breaks.
-
-### S8. Break taken
-- **Narrative:** Dana clicks **Let's go**, or just walks away.
-- **Trigger:**
-  - The **Break** button sends `ext.breakStart`.
-  - A natural break: no Cursor window focused for ≥ 3 min. The extension emits `ext.windowBlur` and later `ext.windowFocus`.
-- **Pet:**
-  - During the break it is *resting* and the load decays fast.
-  - For a guided break, the pet leads a 60-second exercise (20-20-20, cyclic sighing, stand and stretch, rotated each time).
-  - On return: "Welcome back!". Load drops. Optionally the pet comes back from an "adventure" with a hat or item. A break of ≥ 10–15 min resets the escalation ladder.
-
-### S9. Ignored nudges (escalation)
-- **Narrative:** Dana clicks **Later** twice and keeps working.
-- **Trigger:** two `ext.snooze` events, or load ≥ 85.
-- **Pet:**
-  - L2: the pet falls asleep, colors fade, the status bar tint changes. Lines vary every time.
-  - L3 (only if the soft lock is enabled, see §4.7): the next prompt is held back with the pet's message.
-
-### S10. Urgent work override
-- **Narrative:** Production is down. Dana can't take a break now.
-- **Trigger:** Dana clicks **I'm on it, urgent** in the pet panel, or starts a prompt with `!urgent` while the lock is active.
-- **Pet:**
-  - It respects the choice: "Okay, I'll hold the fort." Nudges are muted for 30–60 min (an "urgent window").
-  - The lock is bypassed; overrides are limited per day.
-  - The pet still mirrors load, so it looks tired, but it stays silent until the window ends.
-  - It doesn't punish the override, although each override costs a little pet energy as a gentle cost.
-
-### S11. Long chat
-- **Narrative:** A single conversation grows huge.
-- **Trigger:** `preCompact` with a high `contextPct`.
-- **Pet:** this is our one in-chat message channel (`user_message`): "Long thread! Good moment to stand up while the agent compacts."
-
-### S12. Failure modes
-- **Extension off:** hooks keep logging and Cursor is unaffected. When the extension starts, the engine replays the log tail and catches up.
-- **Hook script fails:** Cursor continues (fail-open). The pet just sees fewer events.
-- **`state.json` is stale** (older than 2 min): the hook ignores it, so it never blocks without a live extension.
+All user scenarios live in [specs/pet-use-cases.md](specs/pet-use-cases.md).
 
 ---
 
@@ -367,7 +287,7 @@ Breaks are pushed as events (`ext.breakStart`), not through a special method, so
 
 ### 4.6 Nudge policy (escalation ladder)
 - **L0 (always):** mood mirrors load. No text.
-- **L1:** load ≥ 60, or ≥ 25–30 min continuous session, or an agent waiting window (S4). A bubble with **Let's go / Later**.
+- **L1:** load ≥ 60, or ≥ 25–30 min continuous session, or an agent waiting window ([UC3](specs/pet-use-cases.md#uc3-long-wait-for-the-agent)). A bubble with **Let's go / Later**.
 - **L2:** load ≥ 85, or 2 snoozes. Sleepy pet, status bar tint, a toast notification with buttons.
 - **L3:** soft prompt-lock. Only if enabled (§4.7).
 
@@ -425,7 +345,7 @@ Candidate actions from the research, roughly in priority order:
 |---|---|---|---|
 | Mood mirror + status bar `🐱 72%` | L0 | low | MVP |
 | Sidebar speech bubble with Let's go / Later | L1 | low | MVP |
-| Micro-break while the agent works (20-20-20, look out the window) | L1 | low | MVP; uses S4 |
+| Micro-break while the agent works (20-20-20, look out the window) | L1 | low | MVP; uses UC3 |
 | Guided 60 s break led by the pet (20-20-20, cyclic sighing, stretch; rotated) | L1–L2 | low–med | MVP top-3 |
 | Toast notification with buttons | L2 | low | |
 | Status bar tint / pet fades | L2 | low | |
