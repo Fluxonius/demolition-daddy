@@ -50,9 +50,10 @@ function createInspector({ liveDir, setDir }) {
     engine.ensure(dir, { llm: true, tz: clock && clock.tz });
   }
 
+  // state.json stays so the pet never flashes "offline"; the engine overwrites it within one tick.
   function resetSandbox() {
     fs.mkdirSync(SANDBOX, { recursive: true });
-    for (const name of ['events.jsonl', 'actions.jsonl', 'agent-log.jsonl', 'state.json', 'messages.json']) {
+    for (const name of ['events.jsonl', 'actions.jsonl', 'agent-log.jsonl', 'messages.json']) {
       fs.rmSync(path.join(SANDBOX, name), { force: true });
     }
   }

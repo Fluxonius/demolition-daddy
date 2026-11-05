@@ -1,7 +1,7 @@
 {
   "name": "demolition-daddy-overlay",
   "productName": "NapCat",
-  "version": "0.2.0",
+  "version": "0.3.1",
   "private": true,
   "description": "Floating desktop pet overlay (Electron) with a localhost fallback for Cursor's built-in browser",
   "author": "Demolition Daddy team",
