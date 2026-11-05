@@ -1,0 +1,9 @@
+/* Pixel pet (grids in sprites.js). The body never deforms; moods live on the face. */
+.sprite { animation: bob 2.4s steps(1) infinite; }
+.mood-happy .sprite { animation-duration: 1.6s; }
+.mood-tired .sprite, .mood-resting .sprite { animation-duration: 3.6s; }
+.mood-sleeping .sprite, .mood-egg .sprite { animation-duration: 4.8s; }
+.z { animation: zfloat 2.4s steps(4) infinite; }
+
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1px); } }
+@keyframes zfloat { 0% { transform: translate(0, 2px); opacity: 0; } 25% { opacity: 1; } 100% { transform: translate(1px, -1px); opacity: 0; } }

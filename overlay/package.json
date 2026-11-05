@@ -8,7 +8,8 @@
     "start": "electron .",
     "serve": "node serve.mjs",
     "fake": "node scripts/fake-state.mjs",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "preview": "node scripts/build-preview.mjs"
   },
   "devDependencies": {
     "electron": "^45.2.3"

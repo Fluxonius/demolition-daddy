@@ -1,6 +1,4 @@
 :root {
-  --pet: #ffb347;
-  --pet-dark: #c97a1a;
   --ink: #2b2118;
   --bubble: #fffaf0;
   --accent: #4caf50;
@@ -30,69 +28,16 @@ body.browser { background: #1e1e1e; }
 body.browser #root { justify-content: center; }
 
 .pet {
-  width: 140px;
-  height: 140px;
+  width: 160px;
+  height: 160px;
   cursor: grab;
   overflow: visible;
+  image-rendering: pixelated;
 }
 .pet:active { cursor: grabbing; }
 
-.shadow { fill: rgba(0, 0, 0, .18); }
-.body { fill: var(--pet); stroke: var(--pet-dark); stroke-width: 2; transition: fill .6s; }
-.egg-shell { fill: #fdf3e1; stroke: #d9c7a6; stroke-width: 2; display: none; }
-.eye { fill: var(--ink); }
-.glint { fill: #fff; }
-.eyes-closed path, .mouth { fill: none; stroke: var(--ink); stroke-width: 3; stroke-linecap: round; }
-.mouth-yawn { fill: var(--ink); }
-.sweat { fill: #7ec8ff; }
-.zzz { font: bold 16px sans-serif; fill: #8fa3bf; }
-
-/* Default visibility; moods toggle these. */
-.eyes-closed, .mouth-flat, .mouth-yawn, .sweat, .zzz { display: none; }
-.body-group { transform-origin: 60px 106px; }
-
-/* ---- Moods (PetState.mood) ---- */
-.mood-egg .body, .mood-egg .eyes-open, .mood-egg .mouth { display: none; }
-.mood-egg .egg-shell { display: block; }
-.mood-egg .body-group { animation: wobble 3s ease-in-out infinite; }
-
-.mood-happy .body-group { animation: bounce 1.6s ease-in-out infinite; }
-
-.mood-focused .mouth-happy { display: none; }
-.mood-focused .mouth-flat { display: block; }
-.mood-focused .body-group { animation: breathe 4s ease-in-out infinite; }
-
-.mood-tired .body { fill: #e8a65a; }
-.mood-tired .mouth-happy { display: none; }
-.mood-tired .mouth-yawn { display: block; }
-.mood-tired .eyes-open { transform: scaleY(.5); transform-origin: 60px 68px; }
-.mood-tired .body-group { animation: breathe 5s ease-in-out infinite; }
-
-.mood-melting .body { fill: #d99a5b; }
-.mood-melting .mouth-happy { display: none; }
-.mood-melting .mouth-flat, .mood-melting .sweat { display: block; }
-.mood-melting .body-group { animation: melt 3s ease-in-out infinite alternate; }
-
-.mood-sleeping .body { fill: #c9a27a; }
-.mood-sleeping .eyes-open, .mood-sleeping .mouth { display: none; }
-.mood-sleeping .eyes-closed, .mood-sleeping .zzz { display: block; }
-.mood-sleeping .zzz { animation: float 2.4s ease-in-out infinite; }
-.mood-sleeping .z2 { animation-delay: 1.2s; }
-.mood-sleeping .body-group { transform: scaleY(.85); }
-
-.mood-resting .eyes-open { display: none; }
-.mood-resting .eyes-closed { display: block; }
-.mood-resting .body { fill: #9ad29a; }
-.mood-resting .body-group { animation: breathe 6s ease-in-out infinite; }
-
 /* No state yet, or state older than 2 min. */
 .offline .pet { opacity: .55; filter: grayscale(.7); }
-
-@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-@keyframes breathe { 0%, 100% { transform: scale(1, 1); } 50% { transform: scale(1.03, .97); } }
-@keyframes wobble { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
-@keyframes melt { from { transform: scale(1, 1); } to { transform: scale(1.15, .8); } }
-@keyframes float { 0% { opacity: 0; transform: translateY(6px); } 50% { opacity: 1; } 100% { opacity: 0; transform: translateY(-10px); } }
 
 /* ---- HUD ---- */
 .hud { display: flex; flex-direction: column; align-items: center; gap: 3px; }
