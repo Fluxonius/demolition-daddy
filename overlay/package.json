@@ -1,8 +1,10 @@
 {
   "name": "demolition-daddy-overlay",
+  "productName": "Cursor Pet",
   "version": "0.1.0",
   "private": true,
   "description": "Floating desktop pet overlay (Electron) with a localhost fallback for Cursor's built-in browser",
+  "author": "Demolition Daddy team",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -10,10 +12,45 @@
     "serve": "node serve.mjs",
     "fake": "node scripts/fake-state.mjs",
     "test": "node --test test/*.test.js",
-    "preview": "node scripts/build-preview.mjs"
+    "preview": "node scripts/build-preview.mjs",
+    "dist:mac": "electron-builder --mac --universal --publish never"
   },
   "devDependencies": {
-    "electron": "^45.2.3"
+    "electron": "^45.2.3",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "com.demolitiondaddy.cursorpet",
+    "productName": "Cursor Pet",
+    "artifactName": "Cursor-Pet-${arch}.${ext}",
+    "asar": false,
+    "files": [
+      "main.js",
+      "preload*.js",
+      "lib/**",
+      "web/**",
+      "scripts/fake-state.mjs",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "identity": "-",
+      "hardenedRuntime": false,
+      "notarize": false,
+      "extendInfo": {
+        "LSUIElement": true
+      }
+    },
+    "dmg": {
+      "title": "Cursor Pet"
+    }
   },
   "engines": {
     "node": ">=22.12"
