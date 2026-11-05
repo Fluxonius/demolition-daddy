@@ -65,7 +65,7 @@ body.browser #root { justify-content: center; }
   font-size: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, .3);
 }
-.bubble[hidden] { display: none; }
+.bubble[hidden], .bubble-actions[hidden] { display: none; }
 .bubble p { margin: 0 0 6px; }
 .bubble-actions { display: flex; gap: 6px; justify-content: flex-end; }
 .bubble button {

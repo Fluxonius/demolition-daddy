@@ -40,6 +40,45 @@ Open `web/sprites.js`. One character is one pixel; colors are letters in `PALETT
 
 Reload `web/preview.html` (open it directly, or via `npm run serve` at `/preview.html`) to see all moods. `npm test` catches ragged rows and unknown colors.
 
+## States (use case → state → trigger → face)
+The overlay derives what to show from `state.json` in `web/display.js`. One example per row lives in `web/states.js`; `npm run fake` cycles through all of them, `web/preview.html` shows them side by side, and `npm test` checks every row. Use cases are in `docs/specs/pet-use-cases.md`.
+
+| State | Use case | Trigger (state.json / UI) | Face | Accessories | Bubble |
+|---|---|---|---|---|---|
+| `offline` | S12 engine offline | no state.json, or updatedAt > 2 min old | `offline` | `question` | — |
+| `egg` | S1 not connected yet | mood 'egg' | `egg` | — | — |
+| `hatched` | S1 first hook event | mood changes from 'egg' (2.5 s) | `surprised` | — | — |
+| `happy` | UC1 idle | mood 'happy' (load < 30) | `happy` | — | — |
+| `watching` | UC1 agent working | agentWorking, mood 'happy' or 'focused' | `watching` | — | — |
+| `focused` | S3 focused session | mood 'focused' (load 30-60) | `focused` | — | — |
+| `bored` | UC3 long wait | overlays has 'bored' (proposed) | `watching` | `bored` | — |
+| `juggling` | S5 parallel agents | stats.parallelConvs >= 2 (2 or 3+ balls) | `focused` | `juggle3` | — |
+| `stuffed` | UC2 token budget | overlays has 'stuffed' (proposed) | `happy` | `stuffed` | — |
+| `tired` | UC4 long without a break | mood 'tired' (load 60-85) | `tired` | — | — |
+| `asking` | UC3/UC4 break nudge (L1) | nudge.level 1, mood 'happy'/'focused'/'tired' | `asking` | — | nudge + buttons |
+| `exercise` | S8 guided break | Let's go on a nudge with exercise (60 s), or onBreak + nudge.exercise | `exercise: stretch` | — | — |
+| `resting` | S8 break taken | onBreak (mood resting) | `resting` | — | — |
+| `welcome` | S8 back from a break | onBreak goes true -> false (6 s) | `celebrate` | `sparkles` | message |
+| `loot` | S8 adventure loot | overlays has 'crown' (proposed) | `happy` | `crown` | — |
+| `agent-done` | UC3 agent finished | nudge.kind 'agent-done' (proposed) | `alert` | `alert-mark` | message |
+| `sweaty` | UC5 fix-it loop | overlays has 'sweaty' (proposed) | `asking` | `sweaty` | nudge + buttons |
+| `melting` | UC4 90 min / S9 L2 | mood 'melting' (load 85-95) | `melting` | — | nudge + buttons |
+| `urgent` | S10 urgent override | urgentUntil in the future (nudges muted) | `determined` | `helmet` | — |
+| `nightcap` | UC6 late hour | overlays has 'nightcap' (proposed) | `asking` | `nightcap` | nudge + buttons |
+| `sleeping` | UC6 bedtime + 2 h / S9 | mood 'sleeping' (load 95+ or late) | `sleeping` | `nightcap` | — |
+| `locked` | S9 soft lock (L3) | lock.active | `sleeping` | `lock` | message |
+
+Face priority when several apply: offline → hatched → exercise → welcome back → locked → agent done → asking → urgent → watching → mood. Clicking the pet shows `hearts` for 1.5 s. Two parallel agents show `juggle2` (two balls).
+
+Not shown on the pet: S11 long chat (`preCompact` speaks in the chat, not in the overlay) and the snooze itself (the bubble just closes).
+
+### Contract proposal for `pet` (not implemented in `contract/`)
+The overlay already handles these fields if the engine writes them; nothing breaks if it doesn't.
+- `PetState.overlays?: Array<'stuffed' | 'bored' | 'sweaty' | 'nightcap' | 'crown'>`. The first four are already proposed in `pet-use-cases.md`; `crown` is new (loot after a break, foundation Q7).
+- `Nudge.kind: 'agent-done'` (already proposed in `pet-use-cases.md`) → `alert` face, bubble without buttons.
+- Keep `nudge.exercise` set while `onBreak` during a guided break, so the exercise face shows even after a restart.
+- No change needed for: `agentWorking` (watching), `stats.parallelConvs` (juggling), `urgentUntil` (urgent), `lock` (locked), `onBreak` (resting / welcome back).
+
 ## Controls (Electron)
 - **Drag** the pet to move the window. **Click** the pet to pet it.
 - **Right-click** the pet, or use the tray/menu-bar icon: show/hide, move back to bottom-right, DevTools, **Quit**.
@@ -53,7 +92,9 @@ Reload `web/preview.html` (open it directly, or via `npm run serve` at `/preview
 | `web/` | The pet page. Mood = class `mood-<mood>` on `#root`; `offline` when state is missing or older than 2 min |
 | `web/sprites.js` | **Pixel art, edit by hand.** Palette, body grid, one face grid per mood, blink frame, sleep "z" |
 | `web/pixel.js`, `web/pixel.css` | Renders grids to crisp SVG `<rect>`s; idle bob and "z" float animations |
-| `web/preview.html` | Every mood + blink side by side (`?still`, `?dark`) |
+| `web/display.js` | `displayState(state, ui)`: PetState → face, exercise, accessories, bubble |
+| `web/states.js` | One example state per use case (fake writer, preview and tests use it) |
+| `web/preview.html` | Every state side by side (`?still`, `?dark`) |
 | `serve.mjs` | Zero-dependency HTTP server for the fallback: static `web/`, `GET /state.json`, `POST /action` |
 | `lib/pet-dir.js` | `CURSOR_PET_DIR` resolution, `readState()`, `watchState()` |
 | `lib/actions.js` | Maps `FromWebview` messages to `ext.*` `PetEvent`s and appends them to `events.jsonl` |

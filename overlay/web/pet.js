@@ -1,29 +1,35 @@
-// Renders PetState (foundation spec §4.4). Two hosts:
+// Renders PetState (foundation spec §4.4) through PetDisplay.displayState (display.js). Two hosts:
 // - Electron overlay: window.petHost from preload.js pushes state on every state.json change.
 // - Browser fallback (npm run serve): polls GET state.json and POSTs clicks to /action.
-// Preview without any state: ?mood=tired, ?exercise=stretch, ?overlays=nightcap,sweaty.
+// Preview without any state: ?face=asking, ?mood=tired, ?exercise=stretch, ?overlays=nightcap,sweaty.
 (() => {
   'use strict';
-  const MOODS = ['egg', 'happy', 'focused', 'tired', 'melting', 'sleeping', 'resting'];
-  const STALE_MS = 2 * 60 * 1000;
   const POLL_MS = 1000;
+  const EXERCISE_MS = 60 * 1000;
+  const HATCH_MS = 2500;
+  const WELCOME_MS = 6000;
+  const HEARTS_MS = 1500;
 
   const $ = (id) => document.getElementById(id);
   const root = $('root');
   const pet = $('pet');
   const params = new URLSearchParams(location.search);
-  const previewMood = params.get('mood');
-  const previewExercise = params.get('exercise');
-  const previewOverlays = params.get('overlays');
-  const EXERCISE_MS = 60 * 1000;
+  const preview = {
+    face: params.get('face') || params.get('mood'),
+    exercise: params.get('exercise'),
+    overlays: params.get('overlays'),
+  };
+  const isPreview = Object.values(preview).some((v) => v !== null);
 
   const host = window.petHost || browserHost();
   if (host.kind !== 'electron') document.body.classList.add('browser');
 
   let current = null;
+  let shown = null; // last displayState result
   let drawnKey = null;
-  let localExercise = null; // { name, until } after the user clicks "Let's go"
   let sprite = null;
+  const ui = { exercise: null, hatchUntil: 0, welcomeUntil: 0, heartsUntil: 0 };
+  let prev = { mood: null, onBreak: false };
 
   (function scheduleBlink() {
     setTimeout(() => {
@@ -55,26 +61,37 @@
     };
   }
 
+  // Track transitions that only the UI sees: hatching and coming back from a break.
+  function noteTransitions(state, now) {
+    if (!state) return;
+    if (prev.mood === 'egg' && state.mood && state.mood !== 'egg') ui.hatchUntil = now + HATCH_MS;
+    if (prev.onBreak && !state.onBreak) ui.welcomeUntil = now + WELCOME_MS;
+    prev = { mood: state.mood, onBreak: !!state.onBreak };
+  }
+
+  function onState(state) {
+    noteTransitions(state, Date.now());
+    render(state);
+  }
+
   function render(state) {
     current = state;
-    const stale = !state || typeof state.updatedAt !== 'number' || Date.now() - state.updatedAt > STALE_MS;
-    let mood = state && MOODS.includes(state.mood) ? state.mood : 'egg';
-    if (MOODS.includes(previewMood)) mood = previewMood;
+    const now = Date.now();
+    const d = window.PetDisplay.displayState(state, { ...ui, now });
+    if (isPreview) {
+      if (preview.face) d.face = preview.face;
+      d.mood = window.PetDisplay.MOODS.includes(preview.face) ? preview.face : d.mood;
+      if (preview.exercise) d.exercise = preview.exercise;
+      if (preview.overlays !== null) d.overlays = preview.overlays.split(',').filter(Boolean);
+      d.stale = false;
+    }
+    shown = d;
 
-    root.className = `mood-${mood}` + (stale && !previewMood ? ' offline' : '');
-
-    // A stale state shows the waiting (egg) face rather than a frozen mood.
-    const faceMood = stale && !previewMood ? 'egg' : mood;
-    let exercise = previewExercise;
-    if (!exercise && localExercise && Date.now() < localExercise.until) exercise = localExercise.name;
-    if (!exercise && state && !stale && state.onBreak && state.nudge && state.nudge.exercise) exercise = state.nudge.exercise;
-    const overlays = previewOverlays !== null
-      ? previewOverlays.split(',').filter(Boolean)
-      : (state && !stale && Array.isArray(state.overlays) ? state.overlays : []);
-    const key = [faceMood, exercise || '', overlays.join(',')].join('|');
+    root.className = `mood-${d.mood} face-${d.exercise ? 'exercise' : d.face}` + (d.stale ? ' offline' : '');
+    const key = [d.face, d.exercise || '', d.overlays.join(',')].join('|');
     if (key !== drawnKey) {
       drawnKey = key;
-      sprite = window.PixelPet.renderPet(pet, faceMood, { exercise, overlays });
+      sprite = window.PixelPet.renderPet(pet, d.face, { exercise: d.exercise, overlays: d.overlays });
     }
 
     const load = state && Number.isFinite(state.load) ? Math.max(0, Math.min(100, state.load)) : 0;
@@ -83,28 +100,34 @@
     fill.style.background = load >= 85 ? '#e53935' : load >= 60 ? '#fb8c00' : load >= 30 ? '#fdd835' : '#4caf50';
 
     let label;
-    if (previewMood) label = `preview: ${mood}`;
+    if (isPreview) label = `preview: ${d.exercise || d.face}`;
     else if (!state) label = 'waiting for state…';
-    else if (stale) label = 'engine offline';
-    else label = `${mood} · ${Math.round(load)}%` + (state.reasons && state.reasons[0] ? ` · ${state.reasons[0]}` : '');
+    else if (d.stale) label = 'engine offline';
+    else label = `${d.mood} · ${Math.round(load)}%` + (state.reasons && state.reasons[0] ? ` · ${state.reasons[0]}` : '');
     $('label').textContent = label;
     $('label').title = state && state.reasons ? state.reasons.join('\n') : '';
 
-    const nudge = state && !stale && state.nudge && state.nudge.level >= 1 ? state.nudge : null;
-    $('bubble').hidden = !nudge;
-    if (nudge) $('bubble-text').textContent = nudge.text;
+    $('bubble').hidden = !d.bubble;
+    if (d.bubble) {
+      $('bubble-text').textContent = d.bubble.text;
+      document.querySelector('.bubble-actions').hidden = !d.bubble.actions;
+    }
   }
 
   $('accept').addEventListener('click', () => {
-    if (!current || !current.nudge) return;
-    host.send({ type: 'nudgeAccepted', id: current.nudge.id });
-    if (current.nudge.exercise) {
-      localExercise = { name: current.nudge.exercise, until: Date.now() + EXERCISE_MS };
-      render(current);
+    const nudge = current && current.nudge;
+    if (!nudge || !shown || !shown.bubble) return;
+    host.send({ type: 'nudgeAccepted', id: nudge.id });
+    if (nudge.exercise) {
+      ui.exercise = { name: nudge.exercise, until: Date.now() + EXERCISE_MS };
       setTimeout(() => render(current), EXERCISE_MS + 50);
     }
+    render(current);
   });
-  $('dismiss').addEventListener('click', () => current && current.nudge && host.send({ type: 'nudgeDismissed', id: current.nudge.id }));
+  $('dismiss').addEventListener('click', () => {
+    const nudge = current && current.nudge;
+    if (nudge && shown && shown.bubble) host.send({ type: 'nudgeDismissed', id: nudge.id });
+  });
 
   // Drag the frameless window by the pet; a click without movement pets it.
   let drag = null;
@@ -123,7 +146,12 @@
     if (host.dragBy && (dx || dy)) host.dragBy(dx, dy);
   });
   pet.addEventListener('pointerup', () => {
-    if (drag && drag.moved < 4) host.send({ type: 'action', action: 'pet' });
+    if (drag && drag.moved < 4) {
+      host.send({ type: 'action', action: 'pet' });
+      ui.heartsUntil = Date.now() + HEARTS_MS;
+      render(current);
+      setTimeout(() => render(current), HEARTS_MS + 50);
+    }
     drag = null;
   });
   pet.addEventListener('contextmenu', (e) => {
@@ -133,6 +161,6 @@
   });
 
   render(null);
-  host.onState(render);
-  setInterval(() => render(current), 15000); // re-evaluate staleness when state.json stops changing
+  host.onState(onState);
+  setInterval(() => render(current), 1000); // expire transient faces and re-check staleness
 })();

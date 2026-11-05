@@ -15,7 +15,8 @@
     P: '#ff7aa8',    // blush
     B: '#6fa8ff',    // tired-blue (eye bags, sweat)
     Z: '#9ec5ff',    // sleep "z"
-    R: '#e04848',    // nightcap
+    R: '#e04848',    // nightcap, juggling ball
+    Y: '#ffd23f',    // accents: "!", lock, hard hat, sparkles, crown
   };
 
   // Canvas is SIZE x SIZE; the body sits at BODY_ORIGIN, leaving room for the "z" above.
@@ -100,6 +101,64 @@
       'P..W..W..P',
       '....WW....',
     ],
+
+    // Reaction faces: not moods, but states the overlay derives from PetState (see web/display.js).
+    offline: [        // no state / engine offline (with a "?" accessory)
+      '..........',
+      '..........',
+      '.GG....GG.',
+      '..........',
+      '...GGGG...',
+      '..........',
+    ],
+    surprised: [      // just hatched (egg -> any mood)
+      'WWW....WWW',
+      'W.W....W.W',
+      'WWW....WWW',
+      '..........',
+      '....WW....',
+      '....WW....',
+    ],
+    watching: [       // agent is working: reading along
+      '..........',
+      '..........',
+      'WW....WW..',
+      'WW....WW..',
+      '....WW....',
+      '..........',
+    ],
+    asking: [         // a break nudge is on screen
+      '.WWW..WWW.',
+      '.WKW..WKW.',
+      '.WWW..WWW.',
+      '..........',
+      '...W..W...',
+      '....WW....',
+    ],
+    alert: [          // agent finished after a long wait
+      '..........',
+      '.WW....WW.',
+      '.WW....WW.',
+      '..........',
+      '..WWWWWW..',
+      '...WWWW...',
+    ],
+    celebrate: [      // welcome back from a break
+      '..........',
+      '..W....W..',
+      '.W.W..W.W.',
+      '..........',
+      'P.WWWWWW.P',
+      '...WWWW...',
+    ],
+    determined: [     // urgent window: holding the fort
+      'WW......WW',
+      '..W....W..',
+      '.WW....WW.',
+      '.WW....WW.',
+      '..........',
+      '...WWWW...',
+    ],
   };
 
   // Exercise faces (Nudge.exercise), shown instead of the mood face during a guided break.
@@ -160,6 +219,57 @@
       '..RRRRRRR.',
       'WWWWWWWWWW',
     ] },
+    // UI-derived accessories (see web/display.js), not part of PetState.overlays.
+    question: { origin: { x: 16, y: 0 }, grid: [  // offline
+      'WWW',
+      '..W',
+      '.W.',
+      '...',
+      '.W.',
+    ] },
+    'alert-mark': { origin: { x: 17, y: 0 }, grid: [  // agent done
+      'Y',
+      'Y',
+      'Y',
+      '.',
+      'Y',
+    ] },
+    sparkles: { origin: { x: 0, y: 0 }, grid: [   // welcome back
+      '.Y................Y.',
+      'YYY..............YYY',
+      '.Y................Y.',
+    ] },
+    lock: { origin: { x: 14, y: 13 }, grid: [     // soft lock active
+      '.YY.',
+      'Y..Y',
+      'YYYY',
+      'YYYY',
+    ] },
+    helmet: { origin: { x: 4, y: 2 }, grid: [     // urgent window (hard hat)
+      '...YYYYYY...',
+      '..YYYYYYYY..',
+      'YYYYYYYYYYYY',
+    ] },
+    juggle2: { origin: { x: 5, y: 0 }, grid: [    // 2 agents at once
+      'RR......BB',
+      'RR......BB',
+    ] },
+    juggle3: { origin: { x: 4, y: 0 }, grid: [    // 3+ agents at once
+      '.....YY.....',
+      'RR...YY...BB',
+      'RR........BB',
+    ] },
+    hearts: { origin: { x: 1, y: 0 }, grid: [     // just petted
+      '.P.P.',
+      'PPPPP',
+      '.PPP.',
+      '..P..',
+    ] },
+    crown: { origin: { x: 6, y: 0 }, grid: [      // loot after a break (proposed)
+      'Y..YY..Y',
+      'YY.YY.YY',
+      'YYYYYYYY',
+    ] },
   };
 
   // Blink frame: drawn over the current face for a moment. 'K' paints body color over open eyes.
@@ -171,7 +281,7 @@
     '..........',
     '..........',
   ];
-  const BLINK_MOODS = ['happy', 'focused', 'tired'];
+  const BLINK_MOODS = ['happy', 'focused', 'tired', 'alert'];
 
   // Floating "z" for sleeping, at Z_ORIGIN on the canvas (top right, above the body).
   const Z = [

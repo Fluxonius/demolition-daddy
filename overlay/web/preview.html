@@ -2,50 +2,63 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Pixel pet: all moods</title>
+  <title>Pixel pet: all states</title>
   <link rel="stylesheet" href="pixel.css">
   <style>
-    body { margin: 0; padding: 20px; background: #1e1e1e; color: #ddd; font: 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { margin: 0; padding: 20px; background: #1e1e1e; color: #ddd; font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     h1 { font-size: 16px; margin: 0 0 4px; }
-    p.hint { margin: 0 0 16px; color: #999; }
-    .grid { display: grid; grid-template-columns: repeat(4, 180px); gap: 12px; }
-    .card { border-radius: 10px; padding: 10px; text-align: center; }
+    h2 { font-size: 13px; margin: 18px 0 8px; color: #bbb; }
+    p.hint { margin: 0 0 12px; color: #999; }
+    .grid { display: grid; grid-template-columns: repeat(6, 150px); gap: 10px; }
+    .card { border-radius: 10px; padding: 8px; text-align: center; position: relative; }
     .card.light { background: #e9e4d8; color: #222; }
     .card.dark { background: #333; }
-    .card svg { width: 160px; height: 160px; overflow: visible; image-rendering: pixelated; }
-    .card b { display: block; margin-top: 4px; }
+    .card svg { width: 120px; height: 120px; overflow: visible; image-rendering: pixelated; margin-top: 4px; }
+    .card b { display: block; font-size: 12px; }
+    .card small { display: block; color: #666; min-height: 2.4em; }
+    .card.dark small { color: #aaa; }
+    .card .say { font-size: 10px; background: #fffaf0; color: #222; border-radius: 6px; padding: 2px 4px; margin-top: 2px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
     .still .sprite, .still .z { animation: none; }
   </style>
 </head>
 <body>
-  <h1>Pixel pet: moods, blink, exercises, overlays</h1>
-  <p class="hint">Edit <code>overlay/web/sprites.js</code> (one character = one pixel) and reload. Add <code>?still</code> to stop animations, <code>?dark</code> for dark cards.</p>
-  <div id="grid" class="grid"></div>
+  <h1>Pixel pet: every state</h1>
+  <p class="hint">One card per use-case state (<code>overlay/web/states.js</code>), rendered through <code>display.js</code> exactly like the overlay.
+    Edit pixels in <code>overlay/web/sprites.js</code>. <code>?still</code> stops animations, <code>?dark</code> uses dark cards.</p>
+  <div id="states" class="grid"></div>
+  <h2>Exercise faces (guided break)</h2>
+  <div id="exercises" class="grid"></div>
   <script src="sprites.js"></script>
   <script src="pixel.js"></script>
+  <script src="display.js"></script>
+  <script src="states.js"></script>
   <script>
     (() => {
       const params = new URLSearchParams(location.search);
       if (params.has('still')) document.body.classList.add('still');
-      const moods = ['egg', 'happy', 'focused', 'tired', 'melting', 'sleeping', 'resting'];
-      const S = window.PET_SPRITES;
-      const cards = moods.map((m) => ({ label: m, mood: m }))
-        .concat([{ label: 'blink (happy)', mood: 'happy', blink: true }])
-        .concat(Object.keys(S.EXERCISES).map((e) => ({ label: `exercise: ${e}`, mood: 'resting', exercise: e })))
-        .concat(Object.keys(S.OVERLAYS).map((o) => ({ label: `overlay: ${o}`, mood: 'happy', overlays: [o] })));
-      const grid = document.getElementById('grid');
-      for (const c of cards) {
-        const card = document.createElement('div');
-        card.className = `card ${params.has('dark') ? 'dark' : 'light'} mood-${c.mood}`;
+      const theme = params.has('dark') ? 'dark' : 'light';
+      const now = Date.now();
+
+      function card(parent, title, sub, mood, opts, say) {
+        const el = document.createElement('div');
+        el.className = `card ${theme} mood-${mood}`;
+        const b = document.createElement('b'); b.textContent = title; el.appendChild(b);
+        const s = document.createElement('small'); s.textContent = sub; el.appendChild(s);
         const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        card.appendChild(svg);
-        const label = document.createElement('b');
-        label.textContent = c.label;
-        card.appendChild(label);
-        grid.appendChild(card);
-        const pet = window.PixelPet.renderPet(svg, c.mood, { exercise: c.exercise, overlays: c.overlays });
-        if (c.blink) pet.setBlink(true);
-        else if (pet.canBlink) setInterval(() => { pet.setBlink(true); setTimeout(() => pet.setBlink(false), 140); }, 3000 + Math.random() * 2000);
+        el.appendChild(svg);
+        if (say) { const q = document.createElement('div'); q.className = 'say'; q.textContent = say; el.appendChild(q); }
+        parent.appendChild(el);
+        const pet = window.PixelPet.renderPet(svg, opts.face, opts);
+        if (pet.canBlink) setInterval(() => { pet.setBlink(true); setTimeout(() => pet.setBlink(false), 140); }, 3000 + Math.random() * 2000);
+      }
+
+      for (const ex of window.PET_STATES.STATES) {
+        const d = window.PetDisplay.displayState(window.PET_STATES.toPetState(ex.state, now), window.PET_STATES.toUi(ex, now));
+        card(document.getElementById('states'), ex.id, ex.useCase, d.mood, { face: d.face, exercise: d.exercise, overlays: d.overlays }, d.bubble && d.bubble.text);
+      }
+      for (const e of Object.keys(window.PET_SPRITES.EXERCISES)) {
+        card(document.getElementById('exercises'), e, 'Nudge.exercise', 'resting', { face: 'resting', exercise: e });
       }
     })();
   </script>
