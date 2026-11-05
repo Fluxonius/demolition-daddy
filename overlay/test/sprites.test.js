@@ -38,4 +38,30 @@ test('grids are rectangular, use palette colors and fit the canvas', () => {
   assert.ok(s.FACE_ORIGIN.x + fw <= bw && s.FACE_ORIGIN.y + fh <= s.BODY.length, 'face overflows BODY');
   checkGrid('Z', s.Z, s.Z[0].length, s.Z.length);
   assert.ok(s.Z_ORIGIN.x + s.Z[0].length <= s.SIZE, 'Z overflows SIZE');
+  checkGrid('TAIL', s.TAIL, s.TAIL[0].length, s.TAIL.length);
+  assert.ok(s.TAIL_ORIGIN.x + s.TAIL[0].length <= s.SIZE && s.TAIL_ORIGIN.y + s.TAIL.length <= s.SIZE, 'TAIL overflows SIZE');
+});
+
+test('idle acts use valid frames and every face has some', () => {
+  const fw = s.FACES.happy[0].length;
+  const fh = s.FACES.happy.length;
+  for (const [name, frames] of Object.entries(s.ACTS)) {
+    assert.ok(frames.length > 0, `ACTS.${name} is empty`);
+    frames.forEach((f, i) => {
+      const at = `ACTS.${name}[${i}]`;
+      assert.ok(f.ms > 0 && f.ms <= 2000, `${at}: ms must be 1..2000`);
+      if (f.face) checkGrid(`${at}.face`, f.face, fw, fh);
+      if (f.body) checkGrid(`${at}.body`, f.body, s.BODY[0].length, s.BODY.length);
+      if (f.tail) checkGrid(`${at}.tail`, f.tail, s.TAIL[0].length, s.TAIL.length);
+      for (const { origin, grid } of f.extra || []) {
+        checkGrid(`${at}.extra`, grid, grid[0].length, grid.length);
+        assert.ok(origin.x >= 0 && origin.y >= 0 && origin.x + grid[0].length <= s.SIZE && origin.y + grid.length <= s.SIZE, `${at}.extra overflows SIZE`);
+      }
+    });
+  }
+  for (const face of [...Object.keys(s.FACES), 'exercise']) {
+    const names = s.IDLES[face];
+    assert.ok(names && names.length, `no IDLES for ${face}`);
+    for (const n of names) assert.ok(s.ACTS[n], `IDLES.${face}: unknown act ${n}`);
+  }
 });

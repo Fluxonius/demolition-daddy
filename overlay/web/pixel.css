@@ -1,9 +1,28 @@
-/* Pixel pet (grids in sprites.js). The body never deforms; moods live on the face. */
+/* Pixel pet (grids in sprites.js). The body never deforms; moods live on the face.
+   .actor carries one-shot moves (idle acts, state-change pop), .sprite the endless bob, .eyes the glances. */
 .sprite { animation: bob 2.4s steps(1) infinite; }
 .mood-happy .sprite { animation-duration: 1.6s; }
 .mood-tired .sprite, .mood-resting .sprite { animation-duration: 3.6s; }
 .mood-sleeping .sprite, .mood-egg .sprite { animation-duration: 4.8s; }
 .z { animation: zfloat 2.4s steps(4) infinite; }
 
+.actor.hop { animation: hop .45s steps(1); }
+.actor.rise { transform: translateY(-1px); }
+.actor.sink { transform: translateY(1px); }
+.actor.wobble { animation: wobble .4s steps(1) 3; }
+.actor.look-left .eyes { transform: translateX(-1px); }
+.actor.look-right .eyes { transform: translateX(1px); }
+.actor.pop { animation: pop .36s steps(1); }
+.actor.pop .eyes { animation: popblink .36s steps(1); }
+
 @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1px); } }
 @keyframes zfloat { 0% { transform: translate(0, 2px); opacity: 0; } 25% { opacity: 1; } 100% { transform: translate(1px, -1px); opacity: 0; } }
+@keyframes hop { 0% { transform: translateY(-1px); } 25%, 50% { transform: translateY(-2px); } 75% { transform: translateY(-1px); } 100% { transform: none; } }
+@keyframes wobble { 0% { transform: translateX(-1px); } 50% { transform: translateX(1px); } 100% { transform: none; } }
+@keyframes pop { 0% { transform: translateY(1px); } 35% { transform: translateY(-2px); } 70% { transform: translateY(-1px); } 100% { transform: none; } }
+@keyframes popblink { 0%, 40% { opacity: 0; } 100% { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .sprite, .z, .actor, .actor .eyes { animation: none !important; }
+  .actor.rise, .actor.sink, .actor.look-left .eyes, .actor.look-right .eyes { transform: none; }
+}

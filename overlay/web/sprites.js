@@ -293,7 +293,85 @@
   const Z_ORIGIN = { x: 16, y: 0 };
   const Z_MOODS = ['sleeping'];
 
-  const sprites = { PALETTE, SIZE, BODY, BODY_ORIGIN, FACES, FACE_ORIGIN, EXERCISES, OVERLAYS, BLINK, BLINK_MOODS, Z, Z_ORIGIN, Z_MOODS };
+  // Tail, drawn on every frame at TAIL_ORIGIN: a thin curl that joins the body at its bottom-right corner.
+  const TAIL = [
+    '..o',
+    '..o',
+    '..o',
+    '..o',
+    '.o.',
+    '.o.',
+    'o..',
+  ];
+  const TAIL_ORIGIN = { x: 17, y: 9 };
+  const TAIL_FLICK = withRows(TAIL, { 0: '.o.' });
+  const TAIL_LOW = ['...', '...', '...', '...', '...', '.oo', 'o..'];
+
+  // Idle acts: short frame sequences played now and then on top of the current face.
+  // A frame starts from the normal pet, then applies what it lists:
+  //   face / body / tail: replacement grid (same size as the original)
+  //   extra: [{ origin, grid }] pixels drawn on top, blink: true shows BLINK,
+  //   cls: CSS class on the pet (`hop`, `look-left`, ... in pixel.css), ms: how long the frame lasts.
+  const EAR_FLICK = withRows(BODY, { 0: 'oo..........oo..', 1: 'oKKo.......oKKo.' });
+  const EAR_FLICK_R = withRows(BODY, { 0: '..oo..........oo', 1: '.oKKo.......oKKo' });
+  const EARS_DOWN = withRows(BODY, { 0: '................', 1: '.oooo......oooo.' });
+  const YAWN = ['..........', '..........', '.WW....WW.', '...WWWW...', '...W..W...', '...WWWW...'];
+  const SIGH = ['..........', '..........', '..........', '.WW....WW.', '..........', '....WW....'];
+  const STRETCH = EXERCISES.stretch;
+  const PAW = ['.o', 'oK', 'oK'];
+  const DROP = ['B'];
+  const ZZ = ['ZZZ', '.Z.', 'ZZZ'];
+  const Z_TINY = ['.Z', 'Z.'];
+
+  const ACTS = {
+    lookLeft: [{ cls: 'look-left', ms: 1400 }],
+    lookRight: [{ cls: 'look-right', ms: 1400 }],
+    lookAround: [{ cls: 'look-left', ms: 900 }, { ms: 250 }, { cls: 'look-right', ms: 900 }],
+    earTwitch: [{ body: EAR_FLICK, ms: 110 }, { ms: 110 }, { body: EAR_FLICK, ms: 110 }],
+    earTwitchRight: [{ body: EAR_FLICK_R, ms: 110 }, { ms: 110 }, { body: EAR_FLICK_R, ms: 110 }],
+    tailFlick: [{ tail: TAIL_FLICK, ms: 180 }, { ms: 180 }, { tail: TAIL_FLICK, ms: 180 }, { ms: 180 }, { tail: TAIL_FLICK, ms: 180 }],
+    tailSlow: [{ tail: TAIL_FLICK, ms: 700 }, { ms: 500 }, { tail: TAIL_FLICK, ms: 700 }],
+    hop: [{ cls: 'hop', ms: 450 }],
+    doubleHop: [{ cls: 'hop', ms: 450 }, { ms: 60 }, { cls: 'hop', ms: 450 }],
+    slowBlink: [{ blink: true, ms: 700 }],
+    fastBlink: [{ blink: true, ms: 90 }, { ms: 110 }, { blink: true, ms: 90 }],
+    scratch: [0, 1, 0, 1, 0, 1].map((dy) => ({ body: EAR_FLICK, extra: [{ origin: { x: 0, y: 5 + dy }, grid: PAW }], ms: 140 })),
+    yawn: [{ face: YAWN, body: EARS_DOWN, ms: 1500 }],
+    stretch: [{ face: STRETCH, tail: TAIL_FLICK, cls: 'rise', ms: 1600 }],
+    sigh: [{ face: SIGH, body: EARS_DOWN, tail: TAIL_LOW, cls: 'sink', ms: 1800 }],
+    drip: [13, 14, 15, 16, 17, 18, 19].map((y) => ({ extra: [{ origin: { x: 14, y }, grid: DROP }], ms: 200 })),
+    wobble: [{ cls: 'wobble', ms: 1200 }],
+    zzz: [{ x: 2, y: 3 }, { x: 1, y: 2 }, { x: 1, y: 1 }, { x: 0, y: 0 }].map((origin) => ({ extra: [{ origin, grid: ZZ }], ms: 450 })),
+    dream: [{ body: EAR_FLICK, extra: [{ origin: { x: 1, y: 3 }, grid: Z_TINY }], ms: 300 }, { extra: [{ origin: { x: 1, y: 3 }, grid: Z_TINY }], ms: 600 }],
+  };
+
+  // Which acts each face (or 'exercise') picks from at random, every few seconds.
+  const IDLES = {
+    happy: ['hop', 'tailFlick', 'earTwitch', 'lookAround', 'scratch'],
+    focused: ['lookLeft', 'lookRight', 'earTwitchRight', 'slowBlink'],
+    watching: ['lookRight', 'earTwitch', 'tailFlick'],
+    tired: ['yawn', 'sigh', 'slowBlink'],
+    melting: ['drip', 'wobble', 'drip'],
+    sleeping: ['zzz', 'dream', 'tailSlow'],
+    resting: ['stretch', 'yawn', 'tailSlow'],
+    egg: ['wobble'],
+    offline: ['lookAround', 'earTwitch'],
+    surprised: ['earTwitch', 'fastBlink'],
+    asking: ['hop', 'earTwitch', 'lookAround'],
+    alert: ['hop', 'earTwitchRight', 'fastBlink'],
+    celebrate: ['doubleHop', 'tailFlick'],
+    determined: ['lookAround', 'earTwitch', 'tailFlick'],
+    exercise: ['tailSlow'],
+  };
+
+  function withRows(grid, rows) {
+    return grid.map((row, i) => (i in rows ? rows[i] : row));
+  }
+
+  const sprites = {
+    PALETTE, SIZE, BODY, BODY_ORIGIN, FACES, FACE_ORIGIN, EXERCISES, OVERLAYS, BLINK, BLINK_MOODS, Z, Z_ORIGIN, Z_MOODS,
+    TAIL, TAIL_ORIGIN, ACTS, IDLES,
+  };
   if (typeof module === 'object' && module.exports) module.exports = sprites;
   else root.PET_SPRITES = sprites;
 })(this);
