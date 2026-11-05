@@ -61,6 +61,20 @@ Status: hackathon build. Live today: Cursor hooks, the load engine with the Curs
    If the Cursor CLI isn't installed or logged in (`agent login`), the header says so, and the pet runs on the local rules engine, labelled **LOCAL RULES**.
 7. **Quit:** menu-bar icon or right-click the pet → **Quit pet**.
 
+### How to verify it works (2 minutes)
+
+The demo uses **simulated** Cursor events, but everything after them is real: the same engine and AI that handle your live hooks.
+
+1. Open the Inspector: hover the cat → **AI**.
+2. Check the header: **SANDBOX** means simulated events, **LIVE** means your real Cursor hooks. The AI badge says whether decisions come from the **Cursor CLI** or the **local rules** fallback.
+3. Click **▶ Play scenario** and watch the three columns from left to right:
+   - **Events:** hook events arrive (`beforeSubmitPrompt`, `afterAgentResponse`, `stop`…), each marked `SIMULATED`.
+   - **Agent reasoning:** what the engine received (session length, minutes since the last break, prompts and agent output read in the last hour, frustrated prompts, parallel chats, hour of day), the Cursor CLI prompt and answer, the load score 0–100, and why it picked that mood.
+   - **Pet:** the resulting state and nudge; the cat on screen changes at the same moment (happy → focused → tired with a break bubble → resting → happy).
+4. Try one cause at a time: **Simulate** "Token budget exceeded", "90 min without break", "3 parallel agents" or "Late night", and see a new reasoning entry and a different reaction.
+5. Click a button in the cat's bubble: the click appears in the Pet column, and the engine stops nudging.
+6. Real mode: after `agent login` and `node hooks/install.mjs`, click **Back to live** and send a prompt in Cursor. Real `REAL HOOK` events appear, and the badge turns **AI · CURSOR CLI**.
+
 **Connect to Cursor** (from a clone, Node 22.18+): install the hooks, run the engine, then start the pet with demo mode off.
 ```bash
 node hooks/install.mjs                 # adds the pet hooks to ~/.cursor/hooks.json (--uninstall to remove)
