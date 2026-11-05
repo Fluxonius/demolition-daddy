@@ -54,9 +54,12 @@ Status: hackathon build. Live today: the overlay with every pet state, animation
    ```bash
    xattr -cr "/Applications/NapCat.app"
    ```
-4. **See it react:** a small black pixel cat appears at the **bottom-right of your screen**. There is no Dock icon; the app lives in the **menu bar** (a small dark circle). While no real engine has written `~/.cursor-pet/state.json`, the app starts in **Demo mode**: every 3 s the pet moves through happy → focused → tired (with a "Let's go / Later" nudge) → melting → sleeping → resting. Toggle it with menu-bar icon (or right-click the pet) → **Demo mode (fake states)**. Turning demo off shows the real `~/.cursor-pet/state.json`.
+4. **See it react:** a small black pixel cat appears at the **bottom-right of your screen**. There is no Dock icon; the app lives in the **menu bar** (a small dark circle). The app runs the real engine itself (no terminal). On the first launch, before `~/.cursor-pet/state.json` exists, it plays a 60 s scripted story in a sandbox: fresh → focused → tired (with a "Let's go / Later" nudge) → break → welcome back. The old fake-state cycle is still at menu-bar icon (or right-click the pet) → **Demo mode (fake states)**.
 5. **Try:** drag the pet anywhere; click it to pet it; click **Let's go** on a nudge to see the exercise.
-6. **Quit:** menu-bar icon or right-click the pet → **Quit pet**.
+6. **See the agent think:** hover the pet and click **AI** (or right-click → **Demo / Agent Inspector…**). Three live panes show the hook events from `events.jsonl`, the engine's reasoning from `agent-log.jsonl` (what it received, the Cursor CLI prompt and answer, load, mood and why, with an **AI · CURSOR CLI** or **LOCAL RULES** badge), and the resulting pet state, nudge and your clicks.
+   Click **▶ Play scenario** or one of the **Simulate** buttons. They append `SIMULATED` events to a sandbox `events.jsonl`, and the real engine and AI analyze them. **Back to live** returns to your real hooks.
+   If the Cursor CLI isn't installed or logged in (`agent login`), the header says so, and the pet runs on the local rules engine, labelled **LOCAL RULES**.
+7. **Quit:** menu-bar icon or right-click the pet → **Quit pet**.
 
 **Connect to Cursor** (from a clone, Node 22.18+): install the hooks, run the engine, then start the pet with demo mode off.
 ```bash

@@ -50,7 +50,25 @@
     },
     "dmg": {
       "title": "NapCat"
-    }
+    },
+    "extraResources": [
+      {
+        "from": "../engine/scripts",
+        "to": "engine/scripts"
+      },
+      {
+        "from": "../engine/src",
+        "to": "engine/src"
+      },
+      {
+        "from": "../hooks",
+        "to": "hooks",
+        "filter": [
+          "**/*",
+          "!test/**"
+        ]
+      }
+    ]
   },
   "engines": {
     "node": ">=22.12"

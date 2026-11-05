@@ -258,6 +258,11 @@
     gear.hidden = false;
     gear.addEventListener('click', () => host.openSettings());
   }
+  if (host.openInspector) {
+    const inspect = $('inspect');
+    inspect.hidden = false;
+    inspect.addEventListener('click', () => host.openInspector());
+  }
   if (host.onSettings) host.onSettings(applySettings);
 
   render(null);

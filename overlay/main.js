@@ -5,6 +5,8 @@ const { petDir, watchState, watchMessages } = require('./lib/pet-dir');
 const { recordAction } = require('./lib/actions');
 const settings = require('./lib/settings');
 const demo = require('./lib/demo-mode');
+const engine = require('./lib/engine');
+const { createInspector } = require('./lib/inspector');
 
 const WIDTH = 220;
 const HEIGHT = 300;
@@ -18,6 +20,16 @@ let lastMessages = null;
 let settingsWin;
 let stopWatchingSettings;
 let currentSettings = settings.readSettings();
+let inspectorWin;
+const inspector = createInspector({
+  liveDir: petDir(),
+  setDir: (dir) => {
+    if (demo.isOn()) demo.stop();
+    process.env.CURSOR_PET_DIR = dir;
+    watchAll();
+    if (tray) tray.setContextMenu(Menu.buildFromTemplate(menuTemplate()));
+  },
+});
 
 if (!app.requestSingleInstanceLock()) app.quit();
 
@@ -89,6 +101,32 @@ function openSettings() {
   settingsWin.on('closed', () => (settingsWin = null));
 }
 
+function openInspector() {
+  if (inspectorWin) {
+    inspectorWin.show();
+    inspectorWin.focus();
+    return;
+  }
+  const { workArea } = screen.getPrimaryDisplay();
+  inspectorWin = new BrowserWindow({
+    width: Math.min(1180, workArea.width - WIDTH - 2 * MARGIN),
+    height: Math.min(720, workArea.height - 2 * MARGIN),
+    x: workArea.x + MARGIN,
+    y: workArea.y + MARGIN,
+    title: 'NapCat · Agent Inspector',
+    frame: false,
+    alwaysOnTop: true,
+    backgroundColor: '#111111',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload-inspector.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  inspectorWin.loadFile(path.join(__dirname, 'web', 'inspector.html'));
+  inspectorWin.on('closed', () => (inspectorWin = null));
+}
+
 function applySettings(next) {
   currentSettings = next;
   if (win) win.webContents.send('pet:settings', next);
@@ -118,6 +156,7 @@ function menuTemplate() {
     { label: 'Demo mode (fake states)', type: 'checkbox', checked: demo.isOn(), click: toggleDemo },
     { type: 'separator' },
     { label: 'Settings…', click: openSettings },
+    { label: 'Demo / Agent Inspector…', click: openInspector },
     { label: 'Show / hide pet', click: () => (win.isVisible() ? win.hide() : win.showInactive()) },
     { label: 'Move to bottom-right', click: () => win.setBounds({ ...bottomRight(), width: WIDTH, height: HEIGHT }) },
     { label: 'Open DevTools', click: () => win.webContents.openDevTools({ mode: 'detach' }) },
@@ -142,6 +181,13 @@ ipcMain.on('pet:drag', (_e, { dx, dy }) => {
 ipcMain.on('pet:menu', () => Menu.buildFromTemplate(menuTemplate()).popup({ window: win }));
 ipcMain.on('pet:send', (_e, msg) => recordAction(msg));
 ipcMain.on('pet:openSettings', openSettings);
+ipcMain.on('pet:openInspector', openInspector);
+ipcMain.handle('inspector:get', () => inspector.snapshot());
+ipcMain.handle('inspector:simulate', (_e, name) => inspector.simulate(String(name)));
+ipcMain.handle('inspector:scenario', () => inspector.playScenario());
+ipcMain.handle('inspector:mode', (_e, mode) => inspector.setMode(mode === 'sandbox' ? 'sandbox' : 'live'));
+ipcMain.handle('inspector:reset', () => inspector.reset());
+ipcMain.on('inspector:close', () => inspectorWin && inspectorWin.close());
 ipcMain.handle('settings:get', () => ({
   settings: currentSettings,
   groups: settings.GROUPS,
@@ -168,8 +214,15 @@ app.whenReady().then(() => {
   createTray();
   stopWatchingSettings = settings.watchSettings(applySettings);
   if (process.argv.includes('--settings')) openSettings();
-  if (app.isPackaged && demo.noRealState()) demo.start();
+  const noRealState = demo.noRealState();
+  if (engine.runnerPath()) {
+    // Judges' first launch: no real ~/.cursor-pet yet, so play the scripted story in the sandbox.
+    if (app.isPackaged && noRealState) inspector.playScenario();
+    else engine.ensure(petDir(), { llm: true });
+  } else if (app.isPackaged && noRealState) demo.start();
   watchAll();
+  if (process.argv.includes('--inspector')) openInspector();
+  if (process.argv.includes('--scenario')) inspector.playScenario();
   tray.setContextMenu(Menu.buildFromTemplate(menuTemplate()));
 });
 
@@ -199,4 +252,6 @@ app.on('before-quit', () => {
   stopWatching.forEach((stop) => stop());
   if (stopWatchingSettings) stopWatchingSettings();
   demo.stop();
+  inspector.stopScenario();
+  engine.stop();
 });

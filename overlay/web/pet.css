@@ -146,4 +146,6 @@ body.browser #root { justify-content: center; }
 .gear[hidden] { display: none; }
 #root:hover .gear, .gear:focus-visible { opacity: 1; }
 .gear:hover { background: #4caf50; }
+.gear.inspect { right: 48px; font-size: 9px; font-weight: bold; font-family: ui-monospace, Menlo, Consolas, monospace; }
+.gear.inspect:hover { background: #fb8c00; }
 .no-meter .meter { display: none; }

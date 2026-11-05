@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'">
+  <title>NapCat · Agent Inspector</title>
+  <link rel="stylesheet" href="settings.css">
+  <link rel="stylesheet" href="inspector.css">
+</head>
+<body>
+  <header class="titlebar">
+    <svg id="mini-pet" class="mini-pet" aria-hidden="true"></svg>
+    <h1>Agent Inspector · hooks → AI agent → Pixel</h1>
+    <span id="mode" class="badge">…</span>
+    <span id="engine" class="badge">…</span>
+    <span id="ai" class="badge">…</span>
+    <button id="close" class="close" type="button" title="Close">×</button>
+  </header>
+  <section class="toolbar">
+    <button id="scenario" type="button" class="btn">▶ Play scenario (60 s)</button>
+    <span id="scenario-status" class="status"></span>
+    <button id="reset" type="button" class="btn secondary">Reset sandbox</button>
+    <button id="live" type="button" class="btn secondary">Back to live</button>
+  </section>
+  <section class="toolbar sims">
+    <span class="label">Simulate:</span>
+    <span id="sims" class="sim-buttons"></span>
+  </section>
+  <main class="panes">
+    <section class="pane">
+      <h2>1 · Hook events <small>events.jsonl</small></h2>
+      <ol id="events" class="feed"></ol>
+    </section>
+    <section class="pane">
+      <h2>2 · Agent reasoning <small>agent-log.jsonl</small></h2>
+      <ol id="reasoning" class="feed"></ol>
+    </section>
+    <section class="pane">
+      <h2>3 · Pet state <small>state.json · messages.json · clicks</small></h2>
+      <div id="pet" class="pet-card">
+        <svg id="big-pet" class="big-pet" aria-hidden="true"></svg>
+        <div class="pet-facts">
+          <div><span id="mood" class="mood">—</span></div>
+          <div class="meter"><span id="load-bar"></span></div>
+          <div id="load" class="dim">load —</div>
+          <div id="source" class="source">—</div>
+        </div>
+      </div>
+      <div id="why" class="why"></div>
+      <div id="bubble" class="bubble" hidden></div>
+      <h3>Clicks &amp; actions</h3>
+      <ol id="actions" class="feed small"></ol>
+    </section>
+  </main>
+  <footer class="footer">
+    <span id="dir" class="status"></span>
+  </footer>
+  <script src="sprites.js"></script>
+  <script src="pixel.js"></script>
+  <script src="inspector.js"></script>
+</body>
+</html>
