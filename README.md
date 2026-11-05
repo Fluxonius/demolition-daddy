@@ -41,9 +41,20 @@ Backed by: [HBR/BCG "AI brain fry"](https://hbr.org/2026/03/when-using-ai-leads-
 Status: hackathon build. Live today: the overlay with every pet state, animations, the speech bubble and settings, driven by a fake engine for the demo. In progress: the Cursor hooks, the load engine and the Cursor CLI AI layer. Design: [foundation spec](docs/foundation-spec.md).
 
 ## For judges
-**You need:** macOS (also works on Linux/Windows), [Node.js](https://nodejs.org) **22.12 or newer** (`node -v`), git. Internet access for the first `npm install`.
+**macOS app (no Node, no npm):**
+1. **Download** [Cursor-Pet-universal.dmg](https://github.com/Fluxonius/demolition-daddy/releases/latest/download/Cursor-Pet-universal.dmg) (Apple Silicon + Intel; [.zip](https://github.com/Fluxonius/demolition-daddy/releases/latest/download/Cursor-Pet-universal.zip) and older builds on the [Releases page](https://github.com/Fluxonius/demolition-daddy/releases)).
+2. **Install:** open the .dmg and drag **Cursor Pet** to **Applications**.
+3. **Open:** the app is unsigned, so the first time **right-click Cursor Pet → Open → Open**. If macOS says the app "is damaged" or still refuses, run this once in Terminal and open it again:
+   ```bash
+   xattr -cr "/Applications/Cursor Pet.app"
+   ```
+4. **See it react:** a small black pixel cat appears at the **bottom-right of your screen**. There is no Dock icon; the app lives in the **menu bar** (a small dark circle). While no real engine has written `~/.cursor-pet/state.json`, the app starts in **Demo mode**: every 3 s the pet moves through happy → focused → tired (with a "Let's go / Later" nudge) → melting → sleeping → resting. Toggle it with menu-bar icon (or right-click the pet) → **Demo mode (fake states)**. Turning demo off shows the real `~/.cursor-pet/state.json`.
+5. **Try:** drag the pet anywhere; click it to pet it; click **Let's go** on a nudge to see the exercise.
+6. **Quit:** menu-bar icon or right-click the pet → **Quit pet**.
 
-**Run it (one copy-paste):**
+**Connect to Cursor:** not in the app yet. The Cursor hooks (`hooks/`) and the engine (`engine/`) that turn agent activity into `~/.cursor-pet/state.json` are still in progress; once they land, the app shows the real state with demo mode off.
+
+**From source instead** (any OS; needs [Node.js](https://nodejs.org) **22.12+**, git, internet for the first `npm install`):
 ```bash
 git clone https://github.com/Fluxonius/demolition-daddy.git && cd demolition-daddy/overlay && npm install && npm run demo
 ```
@@ -51,9 +62,7 @@ A small black pixel cat appears at the **bottom-right of your screen**, floating
 
 **Try:** drag the pet anywhere; click it to pet it; click **Let's go** on a nudge to see the pet do the exercise.
 
-**Quit:** right-click the pet → **Quit pet**, or the tray/menu-bar icon → **Quit pet**, or `Ctrl+C` in the terminal.
-
-**Connect real Cursor activity:** not ready yet. The Cursor hooks (`hooks/`) and the engine (`engine/`) that turn agent activity into `~/.cursor-pet/state.json` are still in progress. Once they land: start the engine, then run `npm start` (instead of `npm run demo`) to show the real state.
+**Quit:** right-click the pet → **Quit pet**, or the tray/menu-bar icon → **Quit pet**, or `Ctrl+C` in the terminal. With real hooks and engine running, use `npm start` instead of `npm run demo`.
 
 **Troubleshooting**
 - `npm install` fails or Electron complains about the Node version: update Node to 22.12+.
@@ -71,6 +80,7 @@ npm run demo         # pet + fake engine in one command (scratch state dir)
 npm start            # floating pet, bottom-right; right-click or tray icon to quit
 npm run fake         # optional: fake state.json that cycles through all moods
 npm run serve        # fallback: open http://127.0.0.1:4517/ in Cursor's Browser tab (File > New Browser)
+npm run dist:mac     # macOS only: unsigned universal .dmg/.zip in overlay/dist/ (CI does this on v* tags)
 ```
 
 More in [overlay/README.md](overlay/README.md).

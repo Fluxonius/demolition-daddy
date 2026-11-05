@@ -4,6 +4,7 @@ const { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage, screen } = require
 const { petDir, watchState, watchMessages } = require('./lib/pet-dir');
 const { recordAction } = require('./lib/actions');
 const settings = require('./lib/settings');
+const demo = require('./lib/demo-mode');
 
 const WIDTH = 220;
 const HEIGHT = 300;
@@ -114,6 +115,7 @@ function trayIcon() {
 function menuTemplate() {
   return [
     { label: `State dir: ${petDir()}`, enabled: false },
+    { label: 'Demo mode (fake states)', type: 'checkbox', checked: demo.isOn(), click: toggleDemo },
     { type: 'separator' },
     { label: 'Settings…', click: openSettings },
     { label: 'Show / hide pet', click: () => (win.isVisible() ? win.hide() : win.showInactive()) },
@@ -166,6 +168,13 @@ app.whenReady().then(() => {
   createTray();
   stopWatchingSettings = settings.watchSettings(applySettings);
   if (process.argv.includes('--settings')) openSettings();
+  if (app.isPackaged && demo.noRealState()) demo.start();
+  watchAll();
+  tray.setContextMenu(Menu.buildFromTemplate(menuTemplate()));
+});
+
+function watchAll() {
+  stopWatching.forEach((stop) => stop());
   stopWatching = [
     watchState((state) => {
       lastState = state;
@@ -176,10 +185,18 @@ app.whenReady().then(() => {
       if (win) win.webContents.send('pet:messages', messages);
     }),
   ];
-});
+}
+
+function toggleDemo() {
+  if (demo.isOn()) demo.stop();
+  else demo.start();
+  watchAll();
+  tray.setContextMenu(Menu.buildFromTemplate(menuTemplate()));
+}
 
 app.on('window-all-closed', () => app.quit());
 app.on('before-quit', () => {
   stopWatching.forEach((stop) => stop());
   if (stopWatchingSettings) stopWatchingSettings();
+  demo.stop();
 });
