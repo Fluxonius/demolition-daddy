@@ -63,6 +63,10 @@ Status: hackathon build. Live today: Cursor hooks, the load engine with the Curs
 
 ### How to verify it works (2 minutes)
 
+![Agent Inspector: hook events, agent reasoning and the pet reacting](docs/assets/agent-inspector.png)
+
+[Watch the full 60 s scenario (video)](docs/assets/agent-inspector.mp4)
+
 The demo uses **simulated** Cursor events, but everything after them is real: the same engine and AI that handle your live hooks.
 
 1. Open the Inspector: hover the cat → **AI**.
