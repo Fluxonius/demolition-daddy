@@ -17,7 +17,7 @@ The pet is visible while the team works in Cursor's **Agents Window**, which doe
 ## Behavior
 - `npm start` opens a 220×260 transparent, frameless, always-on-top, non-resizable window at the bottom-right of the primary display. No Dock/taskbar icon; a tray (menu-bar) icon and a right-click menu offer show/hide, reset position and Quit. Not click-through.
 - Drag the pet to move the window. Click to pet it (`ext.petInteraction`).
-- The main process watches `$CURSOR_PET_DIR/state.json` and pushes every change to the page. The page sets `mood-<mood>` on `#root`, a load meter, the first `reasons` entry, and a bubble for `nudge.level >= 1` with **Let's go / Later**.
+- The main process watches `$CURSOR_PET_DIR/state.json` and pushes every change to the page. The page draws a black pixel-art pet (grids in `overlay/web/sprites.js`; the body never changes, moods show on the face with blink, idle bob and a sleep "z"), sets `mood-<mood>` on `#root`, and shows a load meter, the first `reasons` entry, and a bubble for `nudge.level >= 1` with **Let's go / Later**.
 - State missing or `updatedAt` older than 2 min: grey "engine offline" look.
 - `npm run serve` serves the same page on `http://127.0.0.1:4517/`; it polls `/state.json` every second and POSTs clicks to `/action`.
 - Clicks become `ext.*` lines in `events.jsonl` (see `overlay/README.md`).

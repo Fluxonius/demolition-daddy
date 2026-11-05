@@ -18,6 +18,18 @@
   if (host.kind !== 'electron') document.body.classList.add('browser');
 
   let current = null;
+  let drawnMood = null;
+  let sprite = null;
+
+  (function scheduleBlink() {
+    setTimeout(() => {
+      if (sprite && sprite.canBlink) {
+        sprite.setBlink(true);
+        setTimeout(() => sprite && sprite.setBlink(false), 140);
+      }
+      scheduleBlink();
+    }, 2500 + Math.random() * 3000);
+  })();
 
   function browserHost() {
     return {
@@ -46,6 +58,10 @@
     if (MOODS.includes(previewMood)) mood = previewMood;
 
     root.className = `mood-${mood}` + (stale && !previewMood ? ' offline' : '');
+    if (mood !== drawnMood) {
+      drawnMood = mood;
+      sprite = window.PixelPet.renderPet(pet, mood);
+    }
 
     const load = state && Number.isFinite(state.load) ? Math.max(0, Math.min(100, state.load)) : 0;
     const fill = $('load-fill');

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Pixel pet: all moods</title>
+  <link rel="stylesheet" href="pixel.css">
+  <style>
+    body { margin: 0; padding: 20px; background: #1e1e1e; color: #ddd; font: 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    h1 { font-size: 16px; margin: 0 0 4px; }
+    p.hint { margin: 0 0 16px; color: #999; }
+    .grid { display: grid; grid-template-columns: repeat(4, 180px); gap: 12px; }
+    .card { border-radius: 10px; padding: 10px; text-align: center; }
+    .card.light { background: #e9e4d8; color: #222; }
+    .card.dark { background: #333; }
+    .card svg { width: 160px; height: 160px; overflow: visible; image-rendering: pixelated; }
+    .card b { display: block; margin-top: 4px; }
+    .still .sprite, .still .z { animation: none; }
+  </style>
+</head>
+<body>
+  <h1>Pixel pet: every mood + blink</h1>
+  <p class="hint">Edit <code>overlay/web/sprites.js</code> (one character = one pixel) and reload. Add <code>?still</code> to stop animations, <code>?dark</code> for dark cards.</p>
+  <div id="grid" class="grid"></div>
+  <script src="sprites.js"></script>
+  <script src="pixel.js"></script>
+  <script>
+    (() => {
+      const params = new URLSearchParams(location.search);
+      if (params.has('still')) document.body.classList.add('still');
+      const moods = ['egg', 'happy', 'focused', 'tired', 'melting', 'sleeping', 'resting'];
+      const cards = moods.map((m) => ({ label: m, mood: m })).concat([{ label: 'blink (happy)', mood: 'happy', blink: true }]);
+      const grid = document.getElementById('grid');
+      for (const c of cards) {
+        const card = document.createElement('div');
+        card.className = `card ${params.has('dark') ? 'dark' : 'light'} mood-${c.mood}`;
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        card.appendChild(svg);
+        const label = document.createElement('b');
+        label.textContent = c.label;
+        card.appendChild(label);
+        grid.appendChild(card);
+        const pet = window.PixelPet.renderPet(svg, c.mood);
+        if (c.blink) pet.setBlink(true);
+        else if (pet.canBlink) setInterval(() => { pet.setBlink(true); setTimeout(() => pet.setBlink(false), 140); }, 3000 + Math.random() * 2000);
+      }
+    })();
+  </script>
+</body>
+</html>
